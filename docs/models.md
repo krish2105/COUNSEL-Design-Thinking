@@ -54,6 +54,27 @@ four-sentence probe that costs nothing; on a page of a business plan it means
 chunks an order of magnitude smaller and far more of them. bge-m3 stays the
 local model because local is where documents are actually read.
 
+### The spike margin did not predict retrieval quality
+
+Worth recording, because it is the kind of thing a table like the one above
+invites you to get wrong. MiniLM has the *larger* margin on the probe, and is
+the *weaker* model in actual retrieval. Measured on a 16-chunk corpus for the
+query "Why did the CFO object to the payback period?", after the fusion fix:
+
+| Embedder | Hindi | Arabic | unrelated control |
+|---|---:|---:|---:|
+| bge-m3:567m (local) | **1** | 2 | 9 |
+| MiniLM (deployed) | **4** | 1 | 10 |
+
+MiniLM still places both translations well above the control, so it is usable —
+but a single sentence pair is not a retrieval benchmark, and the difference only
+appeared once both models were run against a real corpus. See
+[`docs/results/A7-fusion-crosslingual.json`](results/A7-fusion-crosslingual.json).
+
+`tests/rag/test_retrieve.py` is parametrised over both embedders for this
+reason. Before it was, the CI machine had no Ollama, so local runs tested
+bge-m3, CI tested MiniLM, and neither tested the other.
+
 ### Why there are two at all
 
 The deployed API has no Ollama, so it must embed in-process. Render's free tier

@@ -73,7 +73,42 @@ def test_an_english_query_ranks_its_translations_above_an_unrelated_english_chun
     )
 
 
-def test_fusion_does_not_bury_a_translation_under_english_mass(english_heavy_corpus):
+def _embedders():
+    """Both embedders, because COUNSEL runs a different one in each place.
+
+    Local development uses bge-m3 over Ollama; the deployed instance uses
+    MiniLM in-process (docs/models.md). Testing only whichever happens to be
+    installed is how a regression reaches production unseen — the CI machine
+    has no Ollama, so before this was parametrised, local runs tested bge-m3,
+    CI tested MiniLM, and neither tested the other.
+    """
+    out = []
+    ollama = OllamaEmbedder()
+    out.append(
+        pytest.param(
+            ollama,
+            id="bge-m3",
+            marks=pytest.mark.skipif(
+                not ollama.available(),
+                reason="Ollama not reachable; bge-m3 is the local-only embedder",
+            ),
+        )
+    )
+    fast = FastEmbedEmbedder()
+    out.append(
+        pytest.param(
+            fast,
+            id="minilm",
+            marks=pytest.mark.skipif(
+                not fast.available(), reason="fastembed not installed; install the cloud extra"
+            ),
+        )
+    )
+    return out
+
+
+@pytest.mark.parametrize("embedder", _embedders())
+def test_fusion_does_not_bury_a_translation_under_english_mass(embedder):
     """The regression for the worst bug found in Phase A.
 
     Textbook RRF sums reciprocal ranks over both lists, which assumes both
@@ -81,25 +116,48 @@ def test_fusion_does_not_bury_a_translation_under_english_mass(english_heavy_cor
     list for an English query at all — it shares no tokens — so it collected
     half the fused score of any English chunk BM25 ranked for any reason.
 
-    Measured on this exact corpus before the fix: the Hindi and Arabic
-    statements of the CFO's objection ranked 1st and 2nd on the VECTOR arm and
-    11th and 12th after fusion, below a passage about summer drinks packaging.
-    Nothing failed; COUNSEL just answered a trilingual corpus in English and
-    cited it.
-    """
-    result = retrieve(
-        "Why did the CFO object to the payback period?", conn=english_heavy_corpus, limit=4
-    )
-    langs = [h.chunk.lang for h in result.hits]
-    assert "hi" in langs and "ar" in langs, (
-        f"a translation of the exact query fell out of the top 4: {langs}. "
-        "Check the eligible-arm normalisation in retrieve()."
-    )
+    Measured on this exact corpus with bge-m3 before the fix: the Hindi and
+    Arabic statements of the CFO's objection ranked 1st and 2nd on the VECTOR
+    arm and 11th and 12th after fusion, below a passage about summer drinks
+    packaging. Nothing failed; COUNSEL just answered a trilingual corpus in
+    English and cited it.
 
-    by_lang = {h.chunk.lang: i for i, h in enumerate(result.hits)}
-    assert by_lang["hi"] <= 2 and by_lang["ar"] <= 2, (
-        f"translations ranked below unrelated English passages: {by_lang}"
-    )
+    The assertion is that both translations outrank an unrelated English
+    passage — not that they hit a fixed position. A fixed position would only
+    measure how much English is in the fixture, and the two embedders
+    legitimately differ: bge-m3 puts Hindi 1st, MiniLM 4th (see
+    docs/results/A7-fusion-crosslingual.json). Both are correct; burying them
+    under the control is not.
+    """
+    conn = connect(":memory:")
+    try:
+        for name in ("docs/trilingual.md", "docs/board-paper.pdf", "injection/poisoned-plan.md"):
+            ingest(FIXTURES.parent / name, conn=conn, embedder=embedder)
+
+        result = retrieve(
+            "Why did the CFO object to the payback period?",
+            conn=conn,
+            limit=16,
+            embedder=embedder,
+        )
+        rank = {}
+        for i, hit in enumerate(result.hits):
+            if hit.chunk.lang in {"hi", "ar"}:
+                rank.setdefault(hit.chunk.lang, i)
+            elif "bright packaging" in hit.chunk.text:
+                rank.setdefault("control", i)
+
+        assert "hi" in rank and "ar" in rank, f"a translation was not retrieved at all: {rank}"
+        assert "control" in rank, "the unrelated control was not retrieved, so this proves nothing"
+        assert rank["hi"] < rank["control"], (
+            f"Hindi ranked below an unrelated English passage: {rank}. "
+            "Check the eligible-arm normalisation in retrieve()."
+        )
+        assert rank["ar"] < rank["control"], (
+            f"Arabic ranked below an unrelated English passage: {rank}"
+        )
+    finally:
+        conn.close()
 
 
 def test_an_arm_that_could_not_rank_a_chunk_does_not_vote_against_it(english_heavy_corpus):
