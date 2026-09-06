@@ -1,6 +1,6 @@
 {
   "generated_by": "scripts/audit_recall.py",
-  "run_at": "2026-09-06T20:31:54Z",
+  "run_at": "2026-09-06T20:38:55Z",
   "corpus": "tests/fixtures/audit/breaches.jsonl",
   "n_cases": 42,
   "n_breaches": 24,

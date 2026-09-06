@@ -27,7 +27,8 @@ regardless of which model finished first.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from services.api.core import killswitch
 from services.api.core.llm import LLMChain, Message
@@ -57,8 +58,21 @@ class Facilitator:
         )
         return session
 
-    def run_round(self, session: Session, *, speakers: tuple[str, ...] = SEATING) -> list[Turn]:
-        """One round. Returns the mandate turns, in seating order."""
+    def run_round(
+        self,
+        session: Session,
+        *,
+        speakers: tuple[str, ...] = SEATING,
+        on_progress: Callable[[str, str], None] | None = None,
+    ) -> list[Turn]:
+        """One round. Returns the mandate turns, in seating order.
+
+        `on_progress(seat, text)` fires the moment a seat finishes, in whatever
+        order the models complete. It exists so a viewer can watch the room
+        think rather than wait forty seconds for a block of JSON — and it is
+        deliberately separate from the returned turns, which stay in seating
+        order because the hash chain depends on them being identical every run.
+        """
         if session.closed:
             raise RuntimeError(f"session {session.session_id} is closed")
         killswitch.check()
@@ -84,8 +98,14 @@ class Facilitator:
             )
 
         # A worker per seat: these are network-bound, and five is the whole room.
+        responses = {}
         with ThreadPoolExecutor(max_workers=len(speakers)) as pool:
-            responses = dict(zip(speakers, pool.map(speak, speakers), strict=True))
+            futures = {pool.submit(speak, seat): seat for seat in speakers}
+            for future in as_completed(futures):
+                seat = futures[future]
+                responses[seat] = future.result()
+                if on_progress is not None:
+                    on_progress(seat, responses[seat].text.strip())
 
         # Written in fixed seating order so the record and its hash chain are
         # identical every run, whatever order the models happened to finish in.

@@ -83,6 +83,46 @@ CREATE TABLE IF NOT EXISTS doc_findings (
     PRIMARY KEY (doc_id, start, pattern)
 );
 
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id  TEXT PRIMARY KEY,
+    question    TEXT NOT NULL,
+    stage       TEXT NOT NULL,
+    round_no    INTEGER NOT NULL,
+    closed      INTEGER NOT NULL DEFAULT 0,
+    ended_early TEXT,
+    created_at  TEXT NOT NULL
+);
+
+-- Turns are stored exactly as signed. verify() reads THESE rows, so it is
+-- checking what was persisted rather than what was just recomputed in memory —
+-- which is the only version of the check that means anything.
+CREATE TABLE IF NOT EXISTS turns (
+    turn_id       TEXT PRIMARY KEY,
+    session_id    TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    ordinal       INTEGER NOT NULL,
+    round_no      INTEGER NOT NULL,
+    stage         TEXT NOT NULL,
+    speaker       TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    provider      TEXT NOT NULL,
+    model         TEXT NOT NULL,
+    citations     TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    prev_sig      TEXT NOT NULL,
+    sig           TEXT NOT NULL,
+    UNIQUE (session_id, ordinal)
+);
+CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session_id, ordinal);
+
+CREATE TABLE IF NOT EXISTS turn_flags (
+    turn_id  TEXT NOT NULL REFERENCES turns(turn_id) ON DELETE CASCADE,
+    rule     TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    excerpt  TEXT NOT NULL,
+    why      TEXT NOT NULL,
+    PRIMARY KEY (turn_id, rule)
+);
+
 CREATE TABLE IF NOT EXISTS quotas (
     provider TEXT PRIMARY KEY,
     used     INTEGER NOT NULL
