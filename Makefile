@@ -1,4 +1,7 @@
-.PHONY: check lint test web-check contrast placeholders api web
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
+.PHONY: check lint test web-check contrast placeholders api web e2e
 
 UV := uv run
 
