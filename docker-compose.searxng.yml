@@ -1,0 +1,29 @@
+# Local SearXNG — the best search tier COUNSEL has, and an optional one.
+#
+# Public SearXNG instances stopped serving the JSON API (verified 2026-09-07:
+# searx.be, searxng.site, priv.au, baresearch.org and search.inetol.net all
+# return HTML, 403 or 429). A local instance still serves JSON, so COUNSEL
+# self-hosts it — but the app degrades to the keyless tier when this is not
+# running, because a demo that dies because Docker is asleep is not a demo.
+#
+#   export SEARXNG_SECRET=$(openssl rand -hex 32)
+#   docker compose -f docker-compose.searxng.yml up -d
+#   curl 'http://localhost:8888/search?q=test&format=json' | head -c 200
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: counsel-searxng
+    ports:
+      - "8888:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?set SEARXNG_SECRET, e.g. openssl rand -hex 32}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID

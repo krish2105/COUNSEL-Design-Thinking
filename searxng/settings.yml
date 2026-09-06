@@ -1,0 +1,36 @@
+# SearXNG configuration for COUNSEL.
+#
+# The single line that matters is `formats: [json]` — the default image serves
+# HTML only, which is precisely why every public instance is useless as an API.
+use_default_settings: true
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "!!! replaced at runtime by SEARXNG_SECRET !!!"
+  limiter: false
+  image_proxy: true
+
+search:
+  safe_search: 1
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+ui:
+  static_use_hash: true
+
+# Engines COUNSEL actually reads. Kept narrow on purpose: a board paper cites
+# sources it can name, and a long tail of aggregators makes provenance worse,
+# not better.
+engines:
+  - name: wikipedia
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: startpage
+    disabled: false
