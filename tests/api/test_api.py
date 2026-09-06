@@ -50,6 +50,7 @@ def test_healthz_reports_what_is_actually_running(client):
     assert body["active_provider"], "some provider must always be able to serve"
     assert any(p["name"] == "anthropic" and p["available"] is False for p in body["providers"])
     assert body["embedder"]["dim"] > 0
+    assert {c["name"] for c in body["embedder"]["chain"]} == {"ollama", "gemini", "fastembed"}
     assert body["killswitch"]["engaged"] is False
     assert "quota_remaining" in body["providers"][0]
 

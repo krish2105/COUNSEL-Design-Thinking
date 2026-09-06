@@ -1,0 +1,55 @@
+# COUNSEL's API on Render's free instance type.
+#
+# WHY THERE IS NO DISK HERE
+# -------------------------
+# The plan called for SQLite on a persistent disk. Render's free web services
+# cannot attach one — disks are a paid-instance feature — and free Render
+# Postgres expires 30 days after creation. Both checked against Render's own
+# documentation on 2026-09-07.
+#
+# So storage is EPHEMERAL and that is a deliberate, time-boxed choice rather
+# than an oversight: the container's filesystem resets on every deploy and
+# after every 15-minute idle spin-down. Through Phase D nothing needs to
+# outlive a session — a visitor uploads a document and debates it there and
+# then. Phase E's outcome ledger scores each agent's calibration over months,
+# and that genuinely cannot be ephemeral, so the persistence decision is made
+# then, when something real depends on it.
+#
+# WHAT THE VISITOR SEES
+# ---------------------
+# First request after 15 minutes idle takes roughly a minute while the instance
+# wakes. The README says so rather than letting it read as a broken link.
+services:
+  - type: web
+    name: counsel-api
+    runtime: python
+    plan: free
+    region: singapore          # closest region to the UAE audience for this work
+    buildCommand: pip install uv && uv sync --extra cloud --frozen
+    startCommand: uv run uvicorn services.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      # Ephemeral, and named so it is obvious in a shell that this is not durable.
+      - key: COUNSEL_DB
+        value: /tmp/counsel-ephemeral.db
+      # Ollama does not exist here, so the embedder chain resolves to Gemini,
+      # and to the in-process ONNX model if that key is absent or exhausted.
+      - key: OLLAMA_HOST
+        value: http://127.0.0.1:1
+      - key: GEMINI_API_KEY
+        sync: false            # set in the Render dashboard; never committed
+      - key: GROQ_API_KEY
+        sync: false
+      # Present and unused. services/api/core/llm.py refuses to select Anthropic
+      # even when this is set, and a test asserts it.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false            # the Vercel URL, once it exists
+      # Requests, not tokens. See services/api/core/quota.py.
+      - key: QUOTA_GEMINI_REQUESTS
+        value: "200"
+      - key: QUOTA_GROQ_REQUESTS
+        value: "200"

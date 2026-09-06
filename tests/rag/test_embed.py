@@ -72,3 +72,64 @@ def test_empty_input_does_not_call_the_model():
 @pytest.mark.parametrize("kind", ["query", "passage"])
 def test_both_kinds_are_accepted(kind):
     assert len(get_embedder().embed([EN], kind=kind)) == 1
+
+
+def test_gemini_is_unavailable_without_a_key(monkeypatch):
+    from services.api.rag.embed import GeminiEmbedder
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    assert GeminiEmbedder(api_key="").available() is False
+    assert GeminiEmbedder(api_key="a-key").available() is True
+
+
+def test_the_chain_prefers_ollama_then_gemini_then_fastembed():
+    from services.api.rag.embed import EmbedderChain, GeminiEmbedder
+
+    class Absent:
+        name, model, dim, max_tokens = "absent", "none", 1, 1
+
+        def available(self):
+            return False
+
+        def embed(self, texts, *, kind="passage"):
+            raise AssertionError("an unavailable embedder must never be called")
+
+    gemini = GeminiEmbedder(api_key="present")
+    assert EmbedderChain([Absent(), gemini, FastEmbedEmbedder()]).resolve() is gemini
+    assert isinstance(
+        EmbedderChain([Absent(), GeminiEmbedder(api_key=""), FastEmbedEmbedder()]).resolve(),
+        FastEmbedEmbedder,
+    )
+
+
+def test_the_chain_resolves_once_and_does_not_drift():
+    """Failing over mid-corpus would split the vector space, leaving half the
+    documents unreachable from any query with no error anywhere."""
+    from services.api.rag.embed import EmbedderChain
+
+    chain = EmbedderChain()
+    first = chain.resolve()
+    assert chain.resolve() is first, "the resolved embedder must be stable for the process"
+
+
+def test_the_chain_names_every_candidate_for_healthz():
+    from services.api.rag.embed import EmbedderChain
+
+    names = {row["name"] for row in EmbedderChain().health()}
+    assert names == {"ollama", "gemini", "fastembed"}
+
+
+def test_no_embedder_at_all_raises_with_instructions():
+    from services.api.rag.embed import EmbedderChain
+
+    class Absent:
+        name, model, dim, max_tokens = "absent", "none", 1, 1
+
+        def available(self):
+            return False
+
+        def embed(self, texts, *, kind="passage"):
+            raise AssertionError
+
+    with pytest.raises(RuntimeError, match="ollama pull bge-m3"):
+        EmbedderChain([Absent()]).resolve()

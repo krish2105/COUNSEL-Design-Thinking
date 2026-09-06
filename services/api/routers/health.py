@@ -13,7 +13,7 @@ from fastapi import APIRouter
 
 from services.api import __version__, deps
 from services.api.core import killswitch
-from services.api.rag.embed import model_key
+from services.api.rag.embed import EmbedderChain, model_key
 
 router = APIRouter(tags=["health"])
 
@@ -34,9 +34,12 @@ def healthz() -> dict[str, object]:
         "active_provider": active.name if active else None,
         "search_tiers": deps.search().health(),
         "embedder": {
-            "model_key": model_key(embed),
+            "active": model_key(embed),
             "dim": embed.dim,
             "max_tokens": embed.max_tokens,
+            # The whole chain, not just the winner: which embedders were
+            # available is what explains why the corpus is in the space it is in.
+            "chain": EmbedderChain().health(),
         },
         "corpus_spaces": spaces,
         "documents": conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0],
