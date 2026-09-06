@@ -129,7 +129,10 @@ const PAIRS = [
  * left for a reviewer to discover. --border is a hairline rule between rows of
  * a document. It is not a control boundary and never encloses one; --border-strong
  * does that job and is gated at 3:1 above. */
-const UNGATED = [["--border", "--bg", "hairline rule between record rows — decorative, not a control boundary"]];
+const UNGATED = [
+  ["--border", "--bg", "hairline rule between record rows — decorative, not a control boundary"],
+  ["--rule-margin", "--bg", "the margin rule the Record column hangs on — structure, not a control boundary"],
+];
 
 // ── run ─────────────────────────────────────────────────────────────────────
 

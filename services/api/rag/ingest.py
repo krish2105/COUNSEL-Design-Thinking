@@ -25,7 +25,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from typing import Literal
 
-from services.api.core.db import ensure_vector_table
+from services.api.core.db import WRITE_LOCK, ensure_vector_table
 from services.api.rag.embed import Embedder, get_embedder, model_key
 from services.api.rag.untrusted import scan
 
@@ -155,39 +155,21 @@ def plan_chunks(text: str, budget: int) -> list[tuple[int, int]]:
 def ingest(
     path: Path, *, conn: Connection, embedder: Embedder | None = None
 ) -> tuple[str, list[Chunk]]:
-    """Ingest a file. Idempotent: doc_id is the sha256 of the bytes."""
+    """Ingest a file. Idempotent: doc_id is the sha256 of the bytes.
+
+    Extraction, chunking and embedding all happen OUTSIDE the write lock —
+    embedding a long document takes seconds and there is no reason for it to
+    block a concurrent read of the record. The lock covers only the writes, so
+    a document is never half-ingested.
+    """
     embedder = embedder or get_embedder()
     raw = path.read_bytes()
     doc_id = hashlib.sha256(raw).hexdigest()
 
-    existing = conn.execute("SELECT doc_id FROM documents WHERE doc_id = ?", (doc_id,)).fetchone()
-    if existing:
+    if conn.execute("SELECT 1 FROM documents WHERE doc_id = ?", (doc_id,)).fetchone():
         return doc_id, load_chunks(doc_id, conn=conn)
 
     text, media_type = extract_text(path)
-    conn.execute(
-        "INSERT INTO documents(doc_id, filename, media_type, text, n_chars, ingested_at, trust) "
-        "VALUES (?, ?, ?, ?, ?, ?, 'untrusted')",
-        (
-            doc_id,
-            path.name,
-            media_type,
-            text,
-            len(text),
-            datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        ),
-    )
-
-    # Scanned once, at the boundary, and recorded. A document that tries to
-    # instruct the model is still ingested and still retrievable — refusing it
-    # would let an attacker delete evidence by poisoning it — but every agent
-    # and the Data tab can see what it tried.
-    conn.executemany(
-        "INSERT OR IGNORE INTO doc_findings(doc_id, pattern, severity, start, end, excerpt) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        [(doc_id, f.pattern, f.severity, f.span[0], f.span[1], f.excerpt) for f in scan(text)],
-    )
-
     chunks = [
         Chunk(
             chunk_id=f"{doc_id[:16]}:{ordinal:04d}",
@@ -202,28 +184,56 @@ def ingest(
         )
         for ordinal, (start, end) in enumerate(plan_chunks(text, _budget(embedder)))
     ]
+    vectors = embedder.embed([c.text for c in chunks], kind="passage") if chunks else []
+    findings = scan(text)
 
-    conn.executemany(
-        "INSERT INTO chunks(chunk_id, doc_id, ordinal, text, start, end, lang, trust) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, 'untrusted')",
-        [(c.chunk_id, c.doc_id, c.ordinal, c.text, c.start, c.end, c.lang) for c in chunks],
-    )
+    with WRITE_LOCK:
+        # Re-check inside the lock: two uploads of the same file can race here.
+        if conn.execute("SELECT 1 FROM documents WHERE doc_id = ?", (doc_id,)).fetchone():
+            return doc_id, load_chunks(doc_id, conn=conn)
 
-    if chunks:
-        table = ensure_vector_table(conn, embedder.dim)
-        key = model_key(embedder)
-        vectors = embedder.embed([c.text for c in chunks], kind="passage")
-        for chunk, vector in zip(chunks, vectors, strict=True):
-            cur = conn.execute(
-                f"INSERT INTO {table}(embedding) VALUES (?)",
-                (_pack(vector),),
-            )
-            conn.execute(
-                "INSERT INTO vector_index(chunk_id, model_key, dim, vec_rowid) VALUES (?, ?, ?, ?)",
-                (chunk.chunk_id, key, embedder.dim, cur.lastrowid),
-            )
+        conn.execute(
+            "INSERT INTO documents(doc_id, filename, media_type, text, n_chars, ingested_at, trust) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'untrusted')",
+            (
+                doc_id,
+                path.name,
+                media_type,
+                text,
+                len(text),
+                datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
 
-    conn.commit()
+        # Scanned once, at the boundary, and recorded. A document that tries to
+        # instruct the model is still ingested and still retrievable — refusing
+        # it would let an attacker delete evidence by poisoning it — but every
+        # agent and the Documents tab can see what it tried.
+        conn.executemany(
+            "INSERT OR IGNORE INTO doc_findings(doc_id, pattern, severity, start, end, excerpt) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [(doc_id, f.pattern, f.severity, f.span[0], f.span[1], f.excerpt) for f in findings],
+        )
+
+        conn.executemany(
+            "INSERT INTO chunks(chunk_id, doc_id, ordinal, text, start, end, lang, trust) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'untrusted')",
+            [(c.chunk_id, c.doc_id, c.ordinal, c.text, c.start, c.end, c.lang) for c in chunks],
+        )
+
+        if chunks:
+            table = ensure_vector_table(conn, embedder.dim)
+            key = model_key(embedder)
+            for chunk, vector in zip(chunks, vectors, strict=True):
+                cur = conn.execute(f"INSERT INTO {table}(embedding) VALUES (?)", (_pack(vector),))
+                conn.execute(
+                    "INSERT INTO vector_index(chunk_id, model_key, dim, vec_rowid) "
+                    "VALUES (?, ?, ?, ?)",
+                    (chunk.chunk_id, key, embedder.dim, cur.lastrowid),
+                )
+
+        conn.commit()
+
     return doc_id, chunks
 
 

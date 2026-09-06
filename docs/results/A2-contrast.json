@@ -14,6 +14,7 @@
         "--surface-hover": "#262a33",
         "--border": "#2f333b",
         "--border-strong": "#6a707c",
+        "--rule-margin": "#4b5059",
         "--text": "#edeef1",
         "--text-muted": "#aaacb2",
         "--text-faint": "#91949a",
@@ -229,6 +230,14 @@
           "floor": null,
           "pass": null,
           "why": "hairline rule between record rows — decorative, not a control boundary"
+        },
+        {
+          "fg": "--rule-margin",
+          "bg": "--bg",
+          "ratio": 2.38,
+          "floor": null,
+          "pass": null,
+          "why": "the margin rule the Record column hangs on — structure, not a control boundary"
         }
       ]
     },
@@ -241,6 +250,7 @@
         "--surface-hover": "#eff2f5",
         "--border": "#d6d9dd",
         "--border-strong": "#7f858c",
+        "--rule-margin": "#b4b8bc",
         "--text": "#1f232a",
         "--text-muted": "#52555c",
         "--text-faint": "#64686f",
@@ -460,6 +470,14 @@
           "floor": null,
           "pass": null,
           "why": "hairline rule between record rows — decorative, not a control boundary"
+        },
+        {
+          "fg": "--rule-margin",
+          "bg": "--bg",
+          "ratio": 1.83,
+          "floor": null,
+          "pass": null,
+          "why": "the margin rule the Record column hangs on — structure, not a control boundary"
         }
       ]
     }

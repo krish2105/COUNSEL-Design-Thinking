@@ -38,6 +38,11 @@
 
   --border:          oklch(0.320 0.016 265);
   --border-strong:   oklch(0.545 0.020 265);
+  /* The margin rule. Brighter than a row hairline because it is the one piece
+     of structure the whole Record surface hangs on — if it is invisible the
+     text column just looks arbitrarily indented. Still a hairline, never a
+     divider. */
+  --rule-margin:     oklch(0.430 0.016 265);
 
   --text:            oklch(0.950 0.004 265);
   --text-muted:      oklch(0.745 0.008 265);
@@ -80,6 +85,7 @@
 
   --border:          oklch(0.885 0.006 250);
   --border-strong:   oklch(0.615 0.012 250);
+  --rule-margin:     oklch(0.780 0.008 250);
 
   --text:            oklch(0.255 0.014 265);
   --text-muted:      oklch(0.450 0.012 265);
@@ -113,6 +119,7 @@
     --surface-hover:   oklch(0.960 0.005 250);
     --border:          oklch(0.885 0.006 250);
     --border-strong:   oklch(0.615 0.012 250);
+    --rule-margin:     oklch(0.780 0.008 250);
     --text:            oklch(0.255 0.014 265);
     --text-muted:      oklch(0.450 0.012 265);
     --text-faint:      oklch(0.515 0.012 265);

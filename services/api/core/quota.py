@@ -14,6 +14,8 @@ from __future__ import annotations
 import sqlite3
 import threading
 
+from services.api.core.db import WRITE_LOCK
+
 
 class Quota:
     """Per-provider request budget, optionally persisted.
@@ -48,12 +50,13 @@ class Quota:
                 return False
             self._used[provider] = self._used.get(provider, 0) + 1
             if self._conn is not None:
-                self._conn.execute(
-                    "INSERT INTO quotas(provider, used) VALUES(?, ?) "
-                    "ON CONFLICT(provider) DO UPDATE SET used = excluded.used",
-                    (provider, self._used[provider]),
-                )
-                self._conn.commit()
+                with WRITE_LOCK:
+                    self._conn.execute(
+                        "INSERT INTO quotas(provider, used) VALUES(?, ?) "
+                        "ON CONFLICT(provider) DO UPDATE SET used = excluded.used",
+                        (provider, self._used[provider]),
+                    )
+                    self._conn.commit()
             return True
 
     def reset(self, provider: str | None = None) -> None:

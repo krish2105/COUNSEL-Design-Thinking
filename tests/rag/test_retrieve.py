@@ -19,11 +19,30 @@ from services.api.rag.retrieve import retrieve, tokenize
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/docs"
 
 
+INJECTION = Path(__file__).resolve().parents[1] / "fixtures/injection"
+
+
 @pytest.fixture
 def corpus():
     conn = connect(":memory:")
     ingest(FIXTURES / "trilingual.md", conn=conn)
     ingest(FIXTURES / "board-paper.pdf", conn=conn)
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def english_heavy_corpus():
+    """The same three-language claim, buried under ten English passages.
+
+    A small balanced corpus hides the fusion bug below: with few English chunks,
+    the unrelated control also falls out of the BM25 list and the comparison
+    proves nothing. English mass is what makes the test real.
+    """
+    conn = connect(":memory:")
+    ingest(FIXTURES / "trilingual.md", conn=conn)
+    ingest(FIXTURES / "board-paper.pdf", conn=conn)
+    ingest(INJECTION / "poisoned-plan.md", conn=conn)
     yield conn
     conn.close()
 
@@ -52,6 +71,51 @@ def test_an_english_query_ranks_its_translations_above_an_unrelated_english_chun
     assert ranks["ar"] < ranks["control"], (
         f"Arabic ranked below an unrelated English chunk: {ranks}"
     )
+
+
+def test_fusion_does_not_bury_a_translation_under_english_mass(english_heavy_corpus):
+    """The regression for the worst bug found in Phase A.
+
+    Textbook RRF sums reciprocal ranks over both lists, which assumes both
+    retrievers could rank any document. A Hindi chunk cannot appear in a BM25
+    list for an English query at all — it shares no tokens — so it collected
+    half the fused score of any English chunk BM25 ranked for any reason.
+
+    Measured on this exact corpus before the fix: the Hindi and Arabic
+    statements of the CFO's objection ranked 1st and 2nd on the VECTOR arm and
+    11th and 12th after fusion, below a passage about summer drinks packaging.
+    Nothing failed; COUNSEL just answered a trilingual corpus in English and
+    cited it.
+    """
+    result = retrieve(
+        "Why did the CFO object to the payback period?", conn=english_heavy_corpus, limit=4
+    )
+    langs = [h.chunk.lang for h in result.hits]
+    assert "hi" in langs and "ar" in langs, (
+        f"a translation of the exact query fell out of the top 4: {langs}. "
+        "Check the eligible-arm normalisation in retrieve()."
+    )
+
+    by_lang = {h.chunk.lang: i for i, h in enumerate(result.hits)}
+    assert by_lang["hi"] <= 2 and by_lang["ar"] <= 2, (
+        f"translations ranked below unrelated English passages: {by_lang}"
+    )
+
+
+def test_an_arm_that_could_not_rank_a_chunk_does_not_vote_against_it(english_heavy_corpus):
+    """The principle behind the fix, stated as a test.
+
+    A chunk sharing no query token is scored on the vector arm alone, so its
+    score is a mean over one arm rather than a sum over two.
+    """
+    result = retrieve("payback period", conn=english_heavy_corpus, limit=16)
+    cross_lingual = [h for h in result.hits if h.rank_bm25 is None and h.rank_vec is not None]
+    assert cross_lingual, "expected at least one vector-only hit"
+    for hit in cross_lingual:
+        expected = 1.0 / (60 + hit.rank_vec + 1)
+        assert hit.score == pytest.approx(expected, rel=1e-6), (
+            "a vector-only hit must be scored as the mean over its one eligible arm"
+        )
 
 
 def test_both_arms_contribute(corpus):

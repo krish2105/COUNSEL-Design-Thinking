@@ -4,6 +4,12 @@ UV := uv run
 
 check: lint test contrast placeholders web-check
 
+# e2e is separate from `check` on purpose: it needs the API and the web server
+# running, so folding it in would make the default green bar depend on two
+# processes a contributor has not started yet.
+e2e:
+	cd apps/web && npx playwright test
+
 lint:
 	$(UV) ruff check services tests scripts
 	$(UV) ruff format --check services tests scripts

@@ -22,9 +22,18 @@ exist.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from pathlib import Path
 
 import sqlite_vec
+
+#: Held around every write. FastAPI serves sync endpoints from a threadpool, so
+#: a process-wide connection is touched by many threads. Python's sqlite3 is
+#: thread-safe at the C level, but transaction state on a shared connection is
+#: not — two interleaved write transactions can commit each other's work. One
+#: operator means contention here is effectively zero, so a lock is the cheap
+#: correct answer rather than a bottleneck.
+WRITE_LOCK = threading.RLock()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
@@ -84,7 +93,10 @@ CREATE TABLE IF NOT EXISTS quotas (
 def connect(path: str | Path = ":memory:") -> sqlite3.Connection:
     if path != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
+    # FastAPI runs sync path operations in a threadpool, so the connection is
+    # legitimately used from more than one thread. Writes are serialised by
+    # WRITE_LOCK above.
+    conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.enable_load_extension(True)
     sqlite_vec.load(conn)

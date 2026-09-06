@@ -1,2 +1,384 @@
 @import "tailwindcss";
 @import "./tokens.css";
+
+/* THE RECORD.
+ *
+ * Everything here is a document surface: a masthead, a single text column, and
+ * a rail down its left edge. There is no card grid, no hero, no gradient — a
+ * boardroom's product is minutes, and minutes are set, not laid out.
+ *
+ * The one loud moment in COUNSEL is the Chamber (Phase D's 3D round table).
+ * This file stays quiet so that lands. */
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+}
+html:lang(ar) { font-family: var(--f-arabic), var(--font-body); }
+html:lang(hi) { font-family: var(--f-devanagari), var(--font-body); }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+:root {
+  --font-display: var(--f-display), "Fraunces", Georgia, serif;
+  --font-body: var(--f-body), "Newsreader", Georgia, serif;
+  --font-mono: var(--f-mono), ui-monospace, Menlo, monospace;
+}
+
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── masthead ───────────────────────────────────────────────────────────── */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1rem 2rem;
+  padding: 1.15rem clamp(1rem, 5vw, 3rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { text-decoration: none; color: inherit; margin-inline-end: auto; }
+
+.brand-mark {
+  display: block;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 1, "opsz" 40;
+  font-weight: 600;
+  font-size: var(--step-1);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.brand-tagline {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  max-width: 28ch;
+}
+
+.masthead nav { display: flex; gap: 1.35rem; }
+
+.tab {
+  font-size: var(--step-0);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid transparent;
+}
+.tab:hover { color: var(--text); }
+.tab[aria-current="page"] { color: var(--text); border-bottom-color: var(--text); }
+
+.controls { display: flex; align-items: center; gap: 0.75rem; }
+.langs { display: flex; gap: 0.15rem; }
+
+.lang, .theme {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 0.22rem 0.5rem;
+  cursor: pointer;
+  min-width: 2.6rem;
+}
+.lang:hover, .theme:hover { color: var(--text); background: var(--surface-hover); }
+.lang[aria-pressed="true"] { color: var(--text); background: var(--surface-raised); border-color: var(--text-faint); }
+
+/* ── the column ─────────────────────────────────────────────────────────── */
+
+#record { flex: 1; padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 5vw, 3rem); }
+
+/* The margin rule runs the whole height of the column, always. It is the page's
+   left margin made literal — the line a clerk rules before writing — so the
+   indent is explained on the first screen rather than looking arbitrary, and
+   every mark in the rail has something to hang on. */
+.column {
+  position: relative;
+  max-width: calc(var(--measure) + var(--rail-width) + 1rem);
+  margin: 0 auto;
+  padding-inline-start: calc(var(--rail-width) + 1rem);
+}
+.column::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--rail-width);
+  width: 1px;
+  background: var(--rule-margin);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 1, "opsz" 72;
+  font-weight: 400;
+  font-size: var(--step-3);
+  line-height: 1.02;
+  margin: 0 0 0.5rem;
+}
+
+.lede {
+  margin: 0 0 2.5rem;
+  max-width: var(--measure);
+  color: var(--text-muted);
+  font-size: var(--step-0);
+  line-height: 1.55;
+}
+
+/* ── the dissent margin ─────────────────────────────────────────────────── */
+
+.entries { display: flex; flex-direction: column; }
+
+.rail-entry {
+  position: relative;
+  padding: 1.35rem 0;
+  border-top: 1px solid var(--border);
+}
+.rail-entry:last-child { border-bottom: 1px solid var(--border); }
+
+/* The mark hangs in the margin, outside the text column, where marginalia go. */
+.rail {
+  position: absolute;
+  top: 1.5rem;
+  inset-inline-start: calc(-1 * (var(--rail-width) + 1rem));
+  width: var(--rail-width);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  text-align: end;
+  padding-inline-end: 0.75rem;
+}
+
+.rail-mark {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+.rail-note {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-transform: lowercase;
+}
+
+/* The seam Phase C fills. A dissent does not get a badge or a coloured card —
+   it thickens the margin rule for exactly the height of the entry it applies to,
+   so scrolling the memo shows at a glance where the room was not united and who
+   broke ranks. Nothing else in COUNSEL is coloured. */
+.rail-entry[data-seat]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(-1 * (var(--rail-width) + 1rem) + var(--rail-width));
+  width: 3px;
+  background: var(--rail-seat, var(--text));
+}
+.rail-entry[data-seat="cfo"] { --rail-seat: var(--seat-cfo); }
+.rail-entry[data-seat="cmo"] { --rail-seat: var(--seat-cmo); }
+.rail-entry[data-seat="coo"] { --rail-seat: var(--seat-coo); }
+.rail-entry[data-seat="ethics"] { --rail-seat: var(--seat-ethics); }
+.rail-entry[data-seat="devil"] { --rail-seat: var(--seat-devil); }
+.rail-entry[data-seat="cfo"] .rail-mark { color: var(--seat-cfo-text); }
+.rail-entry[data-seat="cmo"] .rail-mark { color: var(--seat-cmo-text); }
+.rail-entry[data-seat="coo"] .rail-mark { color: var(--seat-coo-text); }
+.rail-entry[data-seat="ethics"] .rail-mark { color: var(--seat-ethics-text); }
+.rail-entry[data-seat="devil"] .rail-mark { color: var(--seat-devil-text); }
+
+.rail-body { max-width: var(--measure); min-width: 0; }
+
+.entry-title {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 20;
+  font-weight: 500;
+  font-size: var(--step-1);
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.passage, .excerpt {
+  margin: 0 0 0.6rem;
+  line-height: 1.6;
+  font-size: var(--step-0);
+  overflow-wrap: anywhere;
+}
+.excerpt { font-family: var(--font-mono); font-size: var(--step--1); color: var(--text-muted); }
+
+.citation, .tag {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+}
+.tag { letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.7rem; }
+/* Hashes and half-open intervals are technical notation, not prose. Under RTL
+   the bracket pair mirrors and "[14, 86)" renders as "(86 ,14]" — the numbers
+   survive, the notation does not. Isolating them keeps the citation readable
+   in Arabic without forcing the surrounding sentence out of RTL. */
+.hash, .span-ref {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.arm { color: var(--text-muted); }
+
+.meta { display: flex; flex-wrap: wrap; gap: 0 1.75rem; margin: 0 0 0.55rem; }
+.meta div { display: flex; gap: 0.4rem; align-items: baseline; }
+.meta dt, .meta dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+.meta dt { color: var(--text-faint); }
+.meta dd { color: var(--text); font-variant-numeric: tabular-nums; }
+.meta dd[data-flagged="true"] { font-weight: 500; }
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+
+.dropzone, .askbar, .scanner { max-width: var(--measure); }
+
+.drop-label {
+  display: block;
+  padding: 1.5rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 2px;
+  cursor: pointer;
+  background: var(--surface);
+  margin-bottom: 2rem;
+}
+.drop-label:hover { background: var(--surface-hover); }
+.drop-label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop-title { display: block; font-size: var(--step-0); }
+.drop-hint { display: block; margin-top: 0.25rem; font-size: var(--step--1); color: var(--text-faint); }
+
+.askbar { display: flex; gap: 0.6rem; margin-bottom: 2rem; }
+.askbar input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+}
+
+.scanner textarea {
+  width: 100%;
+  padding: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  resize: vertical;
+}
+.scanner-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.75rem 0 2rem; }
+
+button {
+  font: inherit;
+  font-size: var(--step-0);
+  padding: 0.55rem 1.1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+button:hover { opacity: 0.88; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.ghost { background: transparent; color: var(--text-muted); border-color: var(--border-strong); }
+button.ghost:hover { color: var(--text); background: var(--surface-hover); }
+
+/* ── states ─────────────────────────────────────────────────────────────── */
+
+/* Set in ink with a heavy rule, not in red. Chroma in COUNSEL means "an agent
+   said this" and nothing else, so a failure is marked the way an erratum is
+   marked on a page. It is also never signalled by colour alone. */
+.erratum, .empty, .clean {
+  max-width: var(--measure);
+  font-size: var(--step-0);
+  line-height: 1.55;
+}
+.erratum {
+  border-inline-start: 3px solid var(--text);
+  padding: 0.5rem 0 0.5rem 0.85rem;
+  padding-inline-start: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+}
+.empty, .clean { color: var(--text-muted); }
+
+.fenced { margin-top: 2.5rem; }
+.fenced pre {
+  max-width: var(--measure);
+  overflow-x: auto;
+  padding: 0.9rem;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.colophon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  padding: 1.25rem clamp(1rem, 5vw, 3rem);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+}
+
+/* ── narrow ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :root { --rail-width: 1.9rem; }
+  .column { padding-inline-start: calc(var(--rail-width) + 0.7rem); }
+  .rail { inset-inline-start: calc(-1 * (var(--rail-width) + 0.7rem)); padding-inline-end: 0.45rem; }
+  .rail-entry[data-seat]::before {
+    inset-inline-start: calc(-1 * (var(--rail-width) + 0.7rem) + var(--rail-width));
+  }
+  .askbar { flex-direction: column; }
+  .masthead { gap: 0.75rem 1.25rem; }
+  .brand-tagline { display: none; }
+}

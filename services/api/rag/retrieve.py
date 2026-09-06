@@ -14,6 +14,31 @@ scores and cosine distances live on different, unnormalised scales; any weighted
 sum of them is a number with no meaning that happens to sort. RRF only uses
 rank, so it cannot be fooled by scale.
 
+WHY THE FUSION IS NORMALISED BY ELIGIBLE ARMS
+---------------------------------------------
+Textbook RRF sums reciprocal ranks across both lists, which silently assumes
+both retrievers COULD rank any document. On a multilingual corpus that
+assumption is false, and the consequence is severe. Measured on the real corpus
+before this was fixed: for the query "Why did the CFO object to the payback
+period?", the Hindi and Arabic statements of exactly that objection ranked 1st
+and 2nd on the vector arm — the best semantic matches in the corpus after the
+literal English sentence — and came 11th and 12th after fusion, below "The
+marketing team prefers bright packaging for summer drinks".
+
+They could never appear in the BM25 list at all, because they share no tokens
+with an English query, so they collected roughly half the fused score of any
+English chunk BM25 ranked for any reason. The cross-lingual retrieval the whole
+embedding spike was run to buy was being destroyed by the fusion step, and
+nothing failed: COUNSEL simply answered a trilingual corpus in one language and
+cited it.
+
+So the score is the MEAN reciprocal rank over the arms that were eligible to
+rank that chunk, not the sum over all arms. A chunk sharing no token with the
+query is not BM25-eligible, and an arm that structurally cannot express an
+opinion about a document does not get counted as having voted against it.
+Eligibility is decided by token overlap, which is exact and needs no language
+detection.
+
 REFUSING TO MIX SPACES
 ----------------------
 Vectors carry the model that produced them. If the active embedder is not the
@@ -147,10 +172,30 @@ def retrieve(
     lex_rank = {cid: i for i, cid in enumerate(lexical)}
     vec_rank = {cid: i for i, cid in enumerate(semantic)}
 
+    query_tokens = set(tokenize(query))
+    vector_ran = bool(semantic) or why_skipped is None
+
     fused: dict[str, float] = {}
-    for ranking in (lex_rank, vec_rank):
-        for cid, rank in ranking.items():
-            fused[cid] = fused.get(cid, 0.0) + 1.0 / (RRF_K + rank + 1)
+    for cid in set(lex_rank) | set(vec_rank):
+        chunk = by_id.get(cid)
+        if chunk is None:
+            continue
+        contributions = 0.0
+        eligible = 0
+
+        # BM25 can only rank a chunk that shares a token with the query. If it
+        # shares none, BM25's silence is not evidence — it is inability.
+        if query_tokens & set(tokenize(chunk.text)):
+            eligible += 1
+            if cid in lex_rank:
+                contributions += 1.0 / (RRF_K + lex_rank[cid] + 1)
+
+        if vector_ran:
+            eligible += 1
+            if cid in vec_rank:
+                contributions += 1.0 / (RRF_K + vec_rank[cid] + 1)
+
+        fused[cid] = contributions / eligible if eligible else 0.0
 
     hits = [
         Hit(

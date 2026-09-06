@@ -18,3 +18,8 @@ test-results/
 searxng/secret_key
 docs/superpowers/plans/files.zip
 apps/web/tsconfig.tsbuildinfo
+
+# Playwright
+apps/web/.playwright/
+apps/web/test-results/
+apps/web/playwright-report/

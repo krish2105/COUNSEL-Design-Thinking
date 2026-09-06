@@ -150,3 +150,31 @@ def test_a_clean_document_records_no_findings(conn):
 
     doc_id, _ = ingest(FIXTURES / "board-paper.pdf", conn=conn)
     assert findings_for(doc_id, conn=conn) == []
+
+
+def test_ingestion_works_from_a_different_thread_than_the_connection(conn):
+    """The bug this pins was invisible to every other test in this file.
+
+    TestClient runs the app in the calling thread; uvicorn serves sync path
+    operations from a threadpool. So a connection opened at startup is used
+    from a different thread on every request, and sqlite3 refuses that by
+    default. The suite was green and the running server returned a 500 on
+    every upload.
+    """
+    import threading
+
+    result: dict[str, object] = {}
+
+    def worker():
+        try:
+            doc_id, chunks = ingest(FIXTURES / "board-paper.pdf", conn=conn)
+            result["ok"] = (doc_id, len(chunks))
+        except Exception as exc:  # noqa: BLE001 — the failure IS the assertion
+            result["error"] = f"{type(exc).__name__}: {exc}"
+
+    t = threading.Thread(target=worker)
+    t.start()
+    t.join(timeout=120)
+
+    assert "error" not in result, result["error"]
+    assert result["ok"][1] >= 1

@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from services.api import __version__
 from services.api.core.killswitch import KillSwitchEngaged
 from services.api.core.settings import settings
-from services.api.routers import admin, documents, health, research
+from services.api.routers import admin, documents, health, research, security
 
 app = FastAPI(
     title="COUNSEL",
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(documents.router)
 app.include_router(research.router)
+app.include_router(security.router)
 app.include_router(admin.router)
 
 
