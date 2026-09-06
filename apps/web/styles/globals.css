@@ -505,5 +505,32 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
   overflow-wrap: anywhere;
 }
 
+/* An evidence row is an input plus a small dismissal, not two equal controls,
+   so it does not inherit .askbar's stack-on-narrow rule — a full-width Remove
+   under every line reads as five buttons and three fields. */
+.evidence-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  max-width: var(--measure);
+}
+.evidence-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+}
+.evidence-row button {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.7rem;
+  font-size: var(--step--1);
+}
+
 .scanner + .scanner, .scanner + .fenced { margin-top: 2.5rem; }
 .scanner h2 + .lede { margin-bottom: 1rem; }

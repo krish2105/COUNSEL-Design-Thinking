@@ -21,7 +21,7 @@ test("Decide offers editable evidence once a session exists", async ({ page }) =
   // no-session branch. Wait for the form rather than racing it.
   await expect(page.getByRole("button", { name: "Score the options" })).toBeVisible();
 
-  const rows = page.locator(".scanner .askbar input");
+  const rows = page.locator(".evidence-row input");
   expect(await rows.count()).toBeGreaterThanOrEqual(3);
 
   await page.getByRole("button", { name: "Add evidence" }).click();

@@ -114,7 +114,7 @@ export default function Decide() {
         <h2 className="entry-title">{t.decide.evidence}</h2>
         <p className="lede">{t.decide.evidenceLede}</p>
         {evidence.map((row, i) => (
-          <div className="askbar" key={row.evidence_id}>
+          <div className="evidence-row" key={row.evidence_id}>
             <input
               value={row.summary}
               aria-label={`${t.decide.evidence} ${row.evidence_id}`}
