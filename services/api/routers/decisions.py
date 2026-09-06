@@ -152,6 +152,7 @@ def memo(session_id: str) -> dict[str, object]:
         "n_cited": len(built.context) + len(built.reasoning),
         "n_uncited": len(built.uncited),
         "ungrounded": built.ungrounded,
+        "unanimous_dissent": built.unanimous_dissent,
         "dissents": [d.__dict__ for d in built.dissents],
         "margin": built.margin,
     }

@@ -433,3 +433,73 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
   letter-spacing: 0.02em;
   margin-inline-end: 0.4rem;
 }
+
+/* ── decide and ledger ──────────────────────────────────────────────────── */
+
+/* A ranking table is data, so it is set as a table, and it scrolls inside its
+   own box rather than pushing the record column sideways. */
+.scrollable { max-width: var(--measure); overflow-x: auto; }
+
+.ranking {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step--1);
+}
+.ranking th, .ranking td {
+  text-align: start;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  padding-inline-end: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ranking th {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-bottom-color: var(--border-strong);
+}
+.ranking td { font-family: var(--font-mono); }
+.ranking td.num { font-variant-numeric: tabular-nums; }
+.ranking tbody tr:first-child td { font-weight: 500; color: var(--text); }
+
+/* The counterfactual's answer, set as the sentence it is. */
+.verdict {
+  max-width: var(--measure);
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 24;
+  font-size: var(--step-1);
+  line-height: 1.35;
+}
+
+/* Method notes and caveats: present, readable, and never mistaken for a finding. */
+.method {
+  max-width: var(--measure);
+  margin: 0 0 1.5rem;
+  padding-inline-start: 0.85rem;
+  border-inline-start: 1px solid var(--border-strong);
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--text-faint);
+}
+
+.memo {
+  max-width: var(--measure);
+  overflow-x: auto;
+  margin: 0.75rem 0 0;
+  padding: 1.1rem;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.scanner + .scanner, .scanner + .fenced { margin-top: 2.5rem; }
+.scanner h2 + .lede { margin-bottom: 1rem; }

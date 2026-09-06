@@ -1,0 +1,54 @@
+{
+  "generated_by": "a full end-to-end run against the API on qwen3:8b during Phase C, task C6",
+  "question": "Should RAQIB pilot in a Dubai hypermarket or a Greenlam plant first?",
+  "timings_seconds": {
+    "scoring_5_seats_x_2_options": 85,
+    "memo_plus_5_dissents": 31
+  },
+  "ranking": {
+    "hypermarket": 55,
+    "plant": 51,
+    "margin": 4,
+    "mean_confidence": {
+      "hypermarket": 0.67,
+      "plant": 0.64
+    }
+  },
+  "counterfactual": {
+    "verdict": "2 separate pieces of evidence would each flip this on their own (e2, e1). The decision is not robust.",
+    "flips": [
+      {
+        "evidence_id": "e2",
+        "winner_before": "hypermarket",
+        "winner_after": "plant",
+        "margin_before": 4,
+        "margin_after": 18
+      },
+      {
+        "evidence_id": "e1",
+        "winner_before": "hypermarket",
+        "winner_after": "plant",
+        "margin_before": 4,
+        "margin_after": 51
+      }
+    ],
+    "all_seats_grounded_share": 1.0
+  },
+  "finding_1_unanimous_dissent": {
+    "observed": "The scores gave hypermarket 55 to plant 51, so the memo recommended the hypermarket. Then all FIVE seats, asked individually, said they disagreed and preferred the plant.",
+    "diagnosis": "A 4-point margin across 5 seats and 3 axes is inside the noise. The prose round said what the 1-5 integer scoring was too coarse to express.",
+    "why_it_matters": "A recommendation nobody in the room supports would have been presented as the room decision, with a ranking table under it that looked authoritative.",
+    "fix": "Memo.unanimous_dissent is set when every seat dissents, and the memo carries a blockquote above the ranking telling the reader to treat it as too close to call and read the dissent log as the substance."
+  },
+  "finding_2_the_memo_could_not_cite_what_it_was_never_shown": {
+    "observed": "First run: 0 cited claims, 5 uncited, with a document sitting in the corpus. Every claim was about the PROCESS — the hypermarket option received a higher score of 55 — and nothing about a score can ground in a board paper.",
+    "diagnosis": "build_memo passed the model the transcript and the ranking, and never the corpus.",
+    "fix": "Retrieved passages are now put in front of the model, fenced as untrusted content, with an instruction to write about the substance rather than the scoring.",
+    "result": "Second run on the same session: 5 cited, 1 uncited."
+  },
+  "finding_3_the_tradeoff_this_creates": {
+    "observed": "Of the 5 now-cited claims, two were sentences lifted whole from the document with nothing to do with the decision, and one was a duplicate.",
+    "diagnosis": "A verbatim-overlap citation gate rewards copying. Asking for claims phrased close to the source so they can be checked is asking for quotation.",
+    "position_taken": "Duplicates are removed because they are pure noise. Relevance is left to the reader: a mechanical relevance filter would put one more model judgement between the reader and the source, which is what the citation gate exists to avoid. A memo of relevant sentences that cannot be checked misleads silently; a memo of checkable sentences some of which are beside the point wastes a reader time visibly."
+  }
+}

@@ -16,6 +16,8 @@ export function Masthead() {
 
   const tabs = [
     { href: "/room", label: t.nav.room },
+    { href: "/decide", label: t.nav.decide },
+    { href: "/ledger", label: t.nav.ledger },
     { href: "/", label: t.nav.documents },
     { href: "/ask", label: t.nav.ask },
     { href: "/security", label: t.nav.security },

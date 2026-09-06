@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
 import { api, streamRound, type Frame, type Seat, type SessionState } from "@/lib/api";
+import { setCurrentSession } from "@/lib/session";
 
 const STAGES = ["Empathise", "Define", "Ideate", "Prototype", "Test", "Decide", "Learn"];
 const DEMO = "Should RAQIB pilot in a Dubai hypermarket or a Greenlam plant first?";
@@ -56,7 +57,9 @@ export default function Room() {
     setSpoken({});
     setFlags([]);
     try {
-      setSession(await api.openSession(question, stage));
+      const opened = await api.openSession(question, stage);
+      setSession(opened);
+      setCurrentSession(opened.session_id);
       setStatus(t.room.opened);
     } catch (e) {
       setError((e as Error).message);

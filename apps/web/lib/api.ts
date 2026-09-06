@@ -126,6 +126,30 @@ export async function streamRound(
   }
 }
 
+export type Ranked = { option: string; total: number; mean_confidence: number; supporters: string[] };
+export type FlipRow = {
+  evidence_id: string; summary: string; winner_before: string; winner_after: string;
+  margin_before: number; margin_after: number; seats_affected: string[];
+};
+export type Counterfactual = {
+  verdict: string; winner: string | null; margin: number;
+  flips: FlipRow[];
+  sensitivity: { seat: string; grounded_share: number; depends_on: string[]; ungrounded: boolean }[];
+  method: string;
+};
+export type MemoResult = {
+  markdown: string; recommendation: string; n_cited: number; n_uncited: number;
+  ungrounded: boolean; margin: number;
+  dissents: { seat: string; title: string; position: string; would_change_my_mind: string }[];
+};
+export type Calibration = {
+  minimum_outcomes: number; coin_flip_baseline: number;
+  scored: { seat: string; score: number; n_outcomes: number; mean_confidence: number; hit_rate: number; reading: string }[];
+  pending: { seat: string; n_outcomes: number; needs: number }[];
+  outcomes: { session_id: string; question: string; chosen: string; actual: string; notes: string; recorded_at: string }[];
+  note: string;
+};
+
 export const api = {
   seats: () => call<Seat[]>("/sessions/seats", {}, "viewer"),
   openSession: (question: string, stage: string) =>
@@ -147,6 +171,28 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stage }),
     }),
+  addEvidence: (id: string, items: { evidence_id: string; summary: string; source: string }[]) =>
+    call<unknown[]>(`/sessions/${id}/evidence`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(items),
+    }),
+  score: (id: string, options: string[]) =>
+    call<{ ranked: Ranked[]; scores: Record<string, unknown[]> }>(`/sessions/${id}/scores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ options }),
+    }),
+  counterfactual: (id: string) =>
+    call<Counterfactual>(`/sessions/${id}/counterfactual`, {}, "viewer"),
+  memo: (id: string) => call<MemoResult>(`/sessions/${id}/memo`, { method: "POST" }),
+  outcome: (id: string, chosen: string, actual: string, notes: string) =>
+    call<{ recorded: boolean }>(`/sessions/${id}/outcome`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chosen, actual, notes }),
+    }),
+  calibration: () => call<Calibration>("/ledger", {}, "viewer"),
   verify: (id: string) =>
     call<{ intact: boolean; broken_turns: string[]; n_turns: number }>(`/sessions/${id}/verify`, {}, "viewer"),
   health: () => call<Record<string, unknown>>("/healthz", {}, "viewer"),

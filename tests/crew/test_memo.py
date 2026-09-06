@@ -198,3 +198,85 @@ def test_an_empty_memo_still_renders():
     memo = Memo(session_id="s", question="q?", recommendation="none", ranked=[], margin=0.0)
     rendered = render_markdown(memo)
     assert "# Decision memo" in rendered and "q?" in rendered
+
+
+def test_a_recommendation_the_whole_room_rejects_is_flagged_on_its_face(session, chain, conn):
+    """Measured on a real run: the scores gave hypermarket 55 to plant's 51, so
+    the memo recommended the hypermarket — and all five seats then said they
+    disagreed and preferred the plant. A four-point margin across five seats and
+    three axes is inside the noise. Presenting that as the room's decision would
+    be the most misleading thing this memo could do."""
+    memo = build_memo(session, chain=chain, conn=conn, scores=SCORES, evidence=EVIDENCE)
+    attach_dissents(
+        memo,
+        {
+            seat: DissentDraft(agrees=False, position="p" * 20, would_change_my_mind="w" * 20)
+            for seat in ("cfo", "cmo", "coo", "ethics", "devil")
+        },
+    )
+
+    assert memo.unanimous_dissent is True
+    rendered = render_markdown(memo)
+    assert "Every seat in the room disagreed" in rendered
+    assert "too close to call" in rendered
+
+
+def test_a_partly_split_room_is_not_flagged_as_unanimous(session, chain, conn):
+    memo = build_memo(session, chain=chain, conn=conn, scores=SCORES, evidence=EVIDENCE)
+    attach_dissents(
+        memo,
+        {
+            "cfo": DissentDraft(agrees=False, position="p" * 20, would_change_my_mind="w" * 20),
+            "cmo": DissentDraft(agrees=True, position="p" * 20, would_change_my_mind="w" * 20),
+        },
+    )
+    assert memo.unanimous_dissent is False
+    assert "Every seat in the room disagreed" not in render_markdown(memo)
+
+
+def test_the_memo_is_shown_the_corpus_not_just_the_transcript(session, chain, conn):
+    """Measured: given only the transcript and the ranking, the model wrote
+    claims about the SCORING — 'the hypermarket received a higher score of 55' —
+    every one of which failed the citation gate, because nothing about a score
+    can ground in a board paper. It scored 0 cited with a document sitting in
+    the corpus unread. A model cannot cite what it was never shown."""
+    from services.api.crew.memo import _corpus_extract
+
+    extract = _corpus_extract("Why did the CFO object to the payback period?", conn=conn)
+    assert "untrusted_content" in extract, "corpus passages are fenced as what they are"
+    assert "payback period" in extract
+
+    empty = connect(":memory:")
+    try:
+        assert "No documents are in the room" in _corpus_extract("anything", conn=empty)
+    finally:
+        empty.close()
+
+
+def test_a_duplicated_claim_appears_once(session, chain, conn, monkeypatch):
+    """A verbatim-overlap gate pushes the model toward copying, and a copied
+    sentence is easy to copy twice. Duplicates are pure noise; relevance is left
+    to the reader, because a mechanical relevance filter would put one more
+    model judgement between the reader and the source."""
+    from services.api.core.schemas import MemoDraft
+
+    repeated = "The CFO objected that the hypermarket pilot has a longer payback period."
+
+    def fake_structured(*args, **kwargs):
+        return (
+            MemoDraft(
+                recommendation="r" * 20,
+                context=[repeated, repeated],
+                reasoning=[
+                    repeated,
+                    "The COO noted plant downtime windows are scheduled quarterly.",
+                ],
+            ),
+            type("R", (), {"provider": "stub", "model": "m", "truncated": False})(),
+        )
+
+    monkeypatch.setattr(chain, "structured", fake_structured)
+    memo = build_memo(session, chain=chain, conn=conn, scores=SCORES, evidence=EVIDENCE)
+
+    texts = [c.text for c in memo.context + memo.reasoning] + memo.uncited
+    assert texts.count(repeated) == 1, f"the same sentence appeared {texts.count(repeated)} times"
