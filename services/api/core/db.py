@@ -123,6 +123,26 @@ CREATE TABLE IF NOT EXISTS turn_flags (
     PRIMARY KEY (turn_id, rule)
 );
 
+-- What the room predicted, and what actually happened. The Learn stage.
+CREATE TABLE IF NOT EXISTS outcomes (
+    session_id  TEXT PRIMARY KEY REFERENCES sessions(session_id) ON DELETE CASCADE,
+    chosen      TEXT NOT NULL,      -- what the room recommended
+    actual      TEXT NOT NULL,      -- what turned out to be right, in hindsight
+    notes       TEXT NOT NULL,
+    recorded_at TEXT NOT NULL
+);
+
+-- One row per seat per session: which option it backed and how sure it was.
+-- Written at Decide, scored at Learn. Confidence is stored at prediction time
+-- and never rewritten, which is the entire point of a calibration record.
+CREATE TABLE IF NOT EXISTS predictions (
+    session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    seat       TEXT NOT NULL,
+    option     TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    PRIMARY KEY (session_id, seat, option)
+);
+
 CREATE TABLE IF NOT EXISTS quotas (
     provider TEXT PRIMARY KEY,
     used     INTEGER NOT NULL
