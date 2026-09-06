@@ -43,5 +43,13 @@ target-version = "py313"
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's whole dependency system is call-in-default. B008 is a true positive
+# for mutable defaults and a false one here.
+extend-immutable-calls = [
+  "fastapi.Depends", "fastapi.File", "fastapi.Form", "fastapi.Header",
+  "fastapi.Path", "fastapi.Query", "fastapi.Body",
+]
+
 [tool.uv]
 package = false
