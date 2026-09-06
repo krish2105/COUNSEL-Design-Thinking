@@ -1,0 +1,23 @@
+{
+  "generated_by": "the B4 latency measurement in this session",
+  "target_seconds": 240,
+  "model": "qwen3:8b",
+  "think": false,
+  "max_turn_tokens": 180,
+  "rounds": 3,
+  "seats_per_round": 5,
+  "concurrency": "five seats speak concurrently within a round",
+  "total_seconds": 126.5,
+  "per_round_seconds": [
+    45.3,
+    42.8,
+    38.3
+  ],
+  "mandate_turns": 15,
+  "providers_used": [
+    "ollama"
+  ],
+  "transcript_intact": true,
+  "mean_chars_per_turn": 529,
+  "meets_target": true
+}
