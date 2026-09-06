@@ -1,3 +1,161 @@
-:root {
+/* COUNSEL design tokens.
+ *
+ * TWO REGISTERS IN TENSION, NOT ONE INVERTED.
+ * COUNSEL's product is the record — signed minutes, a memo, a dissent log, a
+ * ledger of who turned out to be right. So the app runs two opposed surfaces:
+ *
+ *   THE CHAMBER  the Room tab and its 3D table. Dark, low, quiet. A lit table
+ *                in an unlit room. Its tokens are register-INDEPENDENT: a room
+ *                does not invert when you change your reading light.
+ *   THE RECORD   every other tab. A typeset document surface. Minutes are set,
+ *                not charted.
+ *
+ * ONE RULE ABOUT COLOUR: chroma means "an agent said this". Nothing else in the
+ * application is coloured — not a primary button, not a hover, not a success
+ * state, not an error. The five mandate hues are muted wax-seal tones, and they
+ * are the entire palette. Errors are set in ink with a heavy rule, the way an
+ * erratum is marked on a document; that is also why no state in COUNSEL is
+ * signalled by colour alone.
+ *
+ * Every ratio below is MEASURED by apps/web/scripts/check-contrast.mjs and
+ * published to docs/results/A2-contrast.json. None is estimated.
+ *
+ * The `@register` markers are load-bearing: the contrast gate parses them.
+ */
+
+/* @register dark */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Ink. Never #000 — pure black flattens the chamber's emissive falloff and
+     reads as a void rather than a room. A blue-violet cast, because ink is. */
+  --bg:              oklch(0.165 0.012 265);
+  --bg-inset:        oklch(0.135 0.012 265);
+  --surface:         oklch(0.205 0.014 265);
+  --surface-raised:  oklch(0.245 0.016 265);
+  --surface-hover:   oklch(0.285 0.018 265);
+
+  --border:          oklch(0.320 0.016 265);
+  --border-strong:   oklch(0.545 0.020 265);
+
+  --text:            oklch(0.950 0.004 265);
+  --text-muted:      oklch(0.745 0.008 265);
+  --text-faint:      oklch(0.665 0.010 265);
+  --text-on-seat:    oklch(0.145 0.010 265);
+
+  /* Five mandates. Fills first (rail marks, 3D seats, chips), then the same
+     hue taken to a legible lightness for attribution text. Two tokens because
+     a fill and a word have different jobs and different floors. */
+  --seat-cfo:        oklch(0.615 0.150 25);
+  --seat-devil:      oklch(0.605 0.130 75);
+  --seat-ethics:     oklch(0.590 0.110 165);
+  --seat-coo:        oklch(0.605 0.150 265);
+  --seat-cmo:        oklch(0.615 0.150 320);
+
+  --seat-cfo-text:    oklch(0.760 0.115 25);
+  --seat-devil-text:  oklch(0.800 0.110 75);
+  --seat-ethics-text: oklch(0.790 0.095 165);
+  --seat-coo-text:    oklch(0.770 0.100 265);
+  --seat-cmo-text:    oklch(0.775 0.110 320);
+
+  --shadow-1: none;
+  --shadow-2: 0 8px 28px oklch(0 0 0 / 0.5);
+}
+
+/* @register light */
+:root[data-theme="light"] {
   color-scheme: light;
+
+  /* Vellum, and deliberately COOL. Warm cream with a terracotta accent is the
+     house style of every generated document on the internet right now; this is
+     laid paper under north light instead. Hierarchy here is NOT built by
+     lightness — raised surfaces go toward white and separate by rule and
+     shadow, because inverting the dark ramp would make raised read as sunken. */
+  --bg:              oklch(0.970 0.004 250);
+  --bg-inset:        oklch(0.943 0.005 250);
+  --surface:         oklch(0.992 0.002 250);
+  --surface-raised:  oklch(1.000 0.000 250);
+  --surface-hover:   oklch(0.960 0.005 250);
+
+  --border:          oklch(0.885 0.006 250);
+  --border-strong:   oklch(0.615 0.012 250);
+
+  --text:            oklch(0.255 0.014 265);
+  --text-muted:      oklch(0.450 0.012 265);
+  --text-faint:      oklch(0.515 0.012 265);
+  --text-on-seat:    oklch(0.995 0.002 250);
+
+  --seat-cfo:        oklch(0.480 0.150 25);
+  --seat-devil:      oklch(0.500 0.120 75);
+  --seat-ethics:     oklch(0.470 0.105 165);
+  --seat-coo:        oklch(0.450 0.150 265);
+  --seat-cmo:        oklch(0.460 0.155 320);
+
+  --seat-cfo-text:    oklch(0.470 0.150 25);
+  --seat-devil-text:  oklch(0.455 0.115 75);
+  --seat-ethics-text: oklch(0.440 0.100 165);
+  --seat-coo-text:    oklch(0.440 0.150 265);
+  --seat-cmo-text:    oklch(0.450 0.155 320);
+
+  --shadow-1: 0 1px 2px oklch(0.255 0.014 265 / 0.06);
+  --shadow-2: 0 10px 30px oklch(0.255 0.014 265 / 0.10);
+}
+
+/* System preference, with an explicit choice winning in both directions. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg:              oklch(0.970 0.004 250);
+    --bg-inset:        oklch(0.943 0.005 250);
+    --surface:         oklch(0.992 0.002 250);
+    --surface-raised:  oklch(1.000 0.000 250);
+    --surface-hover:   oklch(0.960 0.005 250);
+    --border:          oklch(0.885 0.006 250);
+    --border-strong:   oklch(0.615 0.012 250);
+    --text:            oklch(0.255 0.014 265);
+    --text-muted:      oklch(0.450 0.012 265);
+    --text-faint:      oklch(0.515 0.012 265);
+    --text-on-seat:    oklch(0.995 0.002 250);
+    --seat-cfo:        oklch(0.480 0.150 25);
+    --seat-devil:      oklch(0.500 0.120 75);
+    --seat-ethics:     oklch(0.470 0.105 165);
+    --seat-coo:        oklch(0.450 0.150 265);
+    --seat-cmo:        oklch(0.460 0.155 320);
+    --seat-cfo-text:    oklch(0.470 0.150 25);
+    --seat-devil-text:  oklch(0.455 0.115 75);
+    --seat-ethics-text: oklch(0.440 0.100 165);
+    --seat-coo-text:    oklch(0.440 0.150 265);
+    --seat-cmo-text:    oklch(0.450 0.155 320);
+    --shadow-1: 0 1px 2px oklch(0.255 0.014 265 / 0.06);
+    --shadow-2: 0 10px 30px oklch(0.255 0.014 265 / 0.10);
+  }
+}
+
+/* The Chamber. Register-independent by design — see the header. */
+:root {
+  --chamber-ground: oklch(0.118 0.014 265);
+  --chamber-table:  oklch(0.232 0.016 265);
+  --chamber-fog:    oklch(0.118 0.014 265);
+  --chamber-text:   oklch(0.950 0.004 265);
+}
+
+/* Type. Fraunces carries the chamber's voice with its WONK axis raised at
+   display sizes only; Newsreader sets the record; Plex Mono carries hashes,
+   timestamps and Brier scores. Noto covers Arabic and Devanagari so one
+   document reads as one document in all three languages. */
+:root {
+  --font-display: "Fraunces", "Noto Serif Devanagari", Georgia, serif;
+  --font-body: "Newsreader", "Noto Naskh Arabic", "Noto Serif Devanagari", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --step--1: clamp(0.78rem, 0.76rem + 0.10vw, 0.84rem);
+  --step-0:  clamp(0.95rem, 0.92rem + 0.15vw, 1.05rem);
+  --step-1:  clamp(1.20rem, 1.12rem + 0.40vw, 1.45rem);
+  --step-2:  clamp(1.55rem, 1.40rem + 0.75vw, 2.05rem);
+  --step-3:  clamp(2.05rem, 1.75rem + 1.50vw, 3.20rem);
+
+  /* The dissent margin: a fixed rail down the left of every record surface. */
+  --rail-width: 2.75rem;
+  --measure: 34rem;
 }

@@ -1,0 +1,467 @@
+{
+  "generated_by": "apps/web/scripts/check-contrast.mjs",
+  "floors": {
+    "text": 4.5,
+    "ui": 3
+  },
+  "registers": {
+    "dark": {
+      "swatches": {
+        "--bg": "#0c0e14",
+        "--bg-inset": "#06080d",
+        "--surface": "#14171e",
+        "--surface-raised": "#1d2028",
+        "--surface-hover": "#262a33",
+        "--border": "#2f333b",
+        "--border-strong": "#6a707c",
+        "--text": "#edeef1",
+        "--text-muted": "#aaacb2",
+        "--text-faint": "#91949a",
+        "--text-on-seat": "#080a0e",
+        "--seat-cfo": "#cf5a55",
+        "--seat-devil": "#ae7400",
+        "--seat-ethics": "#29926d",
+        "--seat-coo": "#557ddb",
+        "--seat-cmo": "#ab63bc",
+        "--seat-cfo-text": "#f1938c",
+        "--seat-devil-text": "#e7b369",
+        "--seat-ethics-text": "#7dceab",
+        "--seat-coo-text": "#95b3f5",
+        "--seat-cmo-text": "#d59fe2"
+      },
+      "pairs": [
+        {
+          "fg": "--text",
+          "bg": "--bg",
+          "ratio": 16.65,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on the ground"
+        },
+        {
+          "fg": "--text",
+          "bg": "--surface",
+          "ratio": 15.48,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on a card"
+        },
+        {
+          "fg": "--text",
+          "bg": "--surface-raised",
+          "ratio": 14.03,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on a raised card"
+        },
+        {
+          "fg": "--text-muted",
+          "bg": "--bg",
+          "ratio": 8.51,
+          "floor": 4.5,
+          "pass": true,
+          "why": "secondary text"
+        },
+        {
+          "fg": "--text-muted",
+          "bg": "--surface",
+          "ratio": 7.91,
+          "floor": 4.5,
+          "pass": true,
+          "why": "secondary text on a card"
+        },
+        {
+          "fg": "--text-faint",
+          "bg": "--bg",
+          "ratio": 6.31,
+          "floor": 4.5,
+          "pass": true,
+          "why": "metadata — smallest type in the app, so still body text"
+        },
+        {
+          "fg": "--text-faint",
+          "bg": "--surface",
+          "ratio": 5.87,
+          "floor": 4.5,
+          "pass": true,
+          "why": "metadata on a card"
+        },
+        {
+          "fg": "--border-strong",
+          "bg": "--bg",
+          "ratio": 3.89,
+          "floor": 3,
+          "pass": true,
+          "why": "control boundary: inputs, buttons, table heads"
+        },
+        {
+          "fg": "--border-strong",
+          "bg": "--surface",
+          "ratio": 3.61,
+          "floor": 3,
+          "pass": true,
+          "why": "control boundary on a card"
+        },
+        {
+          "fg": "--seat-cfo-text",
+          "bg": "--bg",
+          "ratio": 8.56,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CFO attribution"
+        },
+        {
+          "fg": "--seat-cmo-text",
+          "bg": "--bg",
+          "ratio": 9.06,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CMO attribution"
+        },
+        {
+          "fg": "--seat-coo-text",
+          "bg": "--bg",
+          "ratio": 9.24,
+          "floor": 4.5,
+          "pass": true,
+          "why": "COO attribution"
+        },
+        {
+          "fg": "--seat-ethics-text",
+          "bg": "--bg",
+          "ratio": 10.38,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Ethics Officer attribution"
+        },
+        {
+          "fg": "--seat-devil-text",
+          "bg": "--bg",
+          "ratio": 10.18,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Devil's Advocate attribution"
+        },
+        {
+          "fg": "--seat-cfo-text",
+          "bg": "--surface",
+          "ratio": 7.96,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CFO attribution on a card"
+        },
+        {
+          "fg": "--seat-cmo-text",
+          "bg": "--surface",
+          "ratio": 8.42,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CMO attribution on a card"
+        },
+        {
+          "fg": "--seat-coo-text",
+          "bg": "--surface",
+          "ratio": 8.59,
+          "floor": 4.5,
+          "pass": true,
+          "why": "COO attribution on a card"
+        },
+        {
+          "fg": "--seat-ethics-text",
+          "bg": "--surface",
+          "ratio": 9.65,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Ethics attribution on a card"
+        },
+        {
+          "fg": "--seat-devil-text",
+          "bg": "--surface",
+          "ratio": 9.47,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Devil's Advocate attribution on a card"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-cfo",
+          "ratio": 4.96,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a CFO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-cmo",
+          "ratio": 4.95,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a CMO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-coo",
+          "ratio": 5.01,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a COO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-ethics",
+          "ratio": 5.09,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of an Ethics fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-devil",
+          "ratio": 5.01,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a Devil fill"
+        },
+        {
+          "fg": "--border",
+          "bg": "--bg",
+          "ratio": 1.52,
+          "floor": null,
+          "pass": null,
+          "why": "hairline rule between record rows — decorative, not a control boundary"
+        }
+      ]
+    },
+    "light": {
+      "swatches": {
+        "--bg": "#f3f5f8",
+        "--bg-inset": "#eaecef",
+        "--surface": "#fbfcfe",
+        "--surface-raised": "#ffffff",
+        "--surface-hover": "#eff2f5",
+        "--border": "#d6d9dd",
+        "--border-strong": "#7f858c",
+        "--text": "#1f232a",
+        "--text-muted": "#52555c",
+        "--text-faint": "#64686f",
+        "--text-on-seat": "#fcfdff",
+        "--seat-cfo": "#a12f2f",
+        "--seat-devil": "#8a5700",
+        "--seat-ethics": "#006d4c",
+        "--seat-coo": "#2b4ea7",
+        "--seat-cmo": "#7c338c",
+        "--seat-cfo-text": "#9e2c2c",
+        "--seat-devil-text": "#7b4b00",
+        "--seat-ethics-text": "#006344",
+        "--seat-coo-text": "#284ba4",
+        "--seat-cmo-text": "#793089",
+        "--chamber-ground": "#04050a",
+        "--chamber-table": "#1a1d25",
+        "--chamber-fog": "#04050a",
+        "--chamber-text": "#edeef1"
+      },
+      "pairs": [
+        {
+          "fg": "--text",
+          "bg": "--bg",
+          "ratio": 14.47,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on the ground"
+        },
+        {
+          "fg": "--text",
+          "bg": "--surface",
+          "ratio": 15.42,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on a card"
+        },
+        {
+          "fg": "--text",
+          "bg": "--surface-raised",
+          "ratio": 15.78,
+          "floor": 4.5,
+          "pass": true,
+          "why": "body text on a raised card"
+        },
+        {
+          "fg": "--text-muted",
+          "bg": "--bg",
+          "ratio": 6.83,
+          "floor": 4.5,
+          "pass": true,
+          "why": "secondary text"
+        },
+        {
+          "fg": "--text-muted",
+          "bg": "--surface",
+          "ratio": 7.27,
+          "floor": 4.5,
+          "pass": true,
+          "why": "secondary text on a card"
+        },
+        {
+          "fg": "--text-faint",
+          "bg": "--bg",
+          "ratio": 5.16,
+          "floor": 4.5,
+          "pass": true,
+          "why": "metadata — smallest type in the app, so still body text"
+        },
+        {
+          "fg": "--text-faint",
+          "bg": "--surface",
+          "ratio": 5.5,
+          "floor": 4.5,
+          "pass": true,
+          "why": "metadata on a card"
+        },
+        {
+          "fg": "--border-strong",
+          "bg": "--bg",
+          "ratio": 3.4,
+          "floor": 3,
+          "pass": true,
+          "why": "control boundary: inputs, buttons, table heads"
+        },
+        {
+          "fg": "--border-strong",
+          "bg": "--surface",
+          "ratio": 3.63,
+          "floor": 3,
+          "pass": true,
+          "why": "control boundary on a card"
+        },
+        {
+          "fg": "--seat-cfo-text",
+          "bg": "--bg",
+          "ratio": 6.77,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CFO attribution"
+        },
+        {
+          "fg": "--seat-cmo-text",
+          "bg": "--bg",
+          "ratio": 7.42,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CMO attribution"
+        },
+        {
+          "fg": "--seat-coo-text",
+          "bg": "--bg",
+          "ratio": 7.35,
+          "floor": 4.5,
+          "pass": true,
+          "why": "COO attribution"
+        },
+        {
+          "fg": "--seat-ethics-text",
+          "bg": "--bg",
+          "ratio": 6.69,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Ethics Officer attribution"
+        },
+        {
+          "fg": "--seat-devil-text",
+          "bg": "--bg",
+          "ratio": 6.79,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Devil's Advocate attribution"
+        },
+        {
+          "fg": "--seat-cfo-text",
+          "bg": "--surface",
+          "ratio": 7.21,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CFO attribution on a card"
+        },
+        {
+          "fg": "--seat-cmo-text",
+          "bg": "--surface",
+          "ratio": 7.91,
+          "floor": 4.5,
+          "pass": true,
+          "why": "CMO attribution on a card"
+        },
+        {
+          "fg": "--seat-coo-text",
+          "bg": "--surface",
+          "ratio": 7.83,
+          "floor": 4.5,
+          "pass": true,
+          "why": "COO attribution on a card"
+        },
+        {
+          "fg": "--seat-ethics-text",
+          "bg": "--surface",
+          "ratio": 7.13,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Ethics attribution on a card"
+        },
+        {
+          "fg": "--seat-devil-text",
+          "bg": "--surface",
+          "ratio": 7.24,
+          "floor": 4.5,
+          "pass": true,
+          "why": "Devil's Advocate attribution on a card"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-cfo",
+          "ratio": 6.97,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a CFO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-cmo",
+          "ratio": 7.64,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a CMO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-coo",
+          "ratio": 7.56,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a COO fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-ethics",
+          "ratio": 6.32,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of an Ethics fill"
+        },
+        {
+          "fg": "--text-on-seat",
+          "bg": "--seat-devil",
+          "ratio": 6.03,
+          "floor": 4.5,
+          "pass": true,
+          "why": "text knocked out of a Devil fill"
+        },
+        {
+          "fg": "--border",
+          "bg": "--bg",
+          "ratio": 1.3,
+          "floor": null,
+          "pass": null,
+          "why": "hairline rule between record rows — decorative, not a control boundary"
+        }
+      ]
+    }
+  }
+}

@@ -17,3 +17,4 @@ playwright-report/
 test-results/
 searxng/secret_key
 docs/superpowers/plans/files.zip
+apps/web/tsconfig.tsbuildinfo
