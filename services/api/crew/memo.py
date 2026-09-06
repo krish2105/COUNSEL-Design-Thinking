@@ -72,9 +72,12 @@ class Memo:
     uncited: list[str] = field(default_factory=list)
     evidence: list[Evidence] = field(default_factory=list)
     generated_at: str = ""
-    #: True when the room reached this decision with no documents at all, which
-    #: is a fact about the decision and belongs on its face.
-    evidence_free: bool = False
+    #: True when the corpus holds no documents, so nothing in this memo COULD be
+    #: cited however well the room argued. Distinct from having no `evidence`
+    #: items: evidence ids are what the counterfactual removes, documents are
+    #: what a claim resolves against, and a room can have one without the other.
+    #: This is a fact about the decision and belongs on its face.
+    ungrounded: bool = False
 
 
 def ground(text: str, *, conn: Connection, limit: int = 3) -> list[Citation]:
@@ -153,7 +156,7 @@ def build_memo(
         would_change_our_mind=list(draft.would_change_our_mind),
         evidence=list(evidence),
         generated_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        evidence_free=not evidence,
+        ungrounded=conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0] == 0,
     )
 
     for bucket, sentences in (("context", draft.context), ("reasoning", draft.reasoning)):
@@ -208,7 +211,7 @@ def render_markdown(memo: Memo) -> str:
         "",
     ]
 
-    if memo.evidence_free:
+    if memo.ungrounded:
         out += [
             "> **This decision was reached with no documents in the room.** Nothing below is "
             "grounded in a source the room holds, which is why the body is empty and every "

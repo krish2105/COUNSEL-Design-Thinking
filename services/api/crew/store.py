@@ -143,6 +143,62 @@ def flags_for(session_id: str, *, conn: Connection) -> dict[str, list[dict[str, 
     return out
 
 
+def save_artefacts(session_id: str, kind: str, artefacts: dict, *, conn: Connection) -> None:
+    """Stage artefacts, stored as JSON keyed by seat.
+
+    Kept whole rather than exploded into columns: they are model output with a
+    schema that will change as the stages do, and the memo reads them back as
+    objects anyway.
+    """
+    with WRITE_LOCK:
+        conn.execute(
+            "INSERT INTO artefacts(session_id, kind, payload, created_at) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(session_id, kind) DO UPDATE SET payload=excluded.payload, "
+            "created_at=excluded.created_at",
+            (
+                session_id,
+                kind,
+                json.dumps(
+                    {
+                        seat: [a.model_dump() for a in v] if isinstance(v, list) else v.model_dump()
+                        for seat, v in artefacts.items()
+                    },
+                    ensure_ascii=False,
+                ),
+                datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
+        conn.commit()
+
+
+def load_artefacts(session_id: str, kind: str, *, conn: Connection) -> dict | None:
+    row = conn.execute(
+        "SELECT payload FROM artefacts WHERE session_id = ? AND kind = ?", (session_id, kind)
+    ).fetchone()
+    return json.loads(row["payload"]) if row else None
+
+
+def save_evidence(session_id: str, evidence: list, *, conn: Connection) -> None:
+    with WRITE_LOCK:
+        conn.executemany(
+            "INSERT OR REPLACE INTO evidence(session_id, evidence_id, summary, source, external) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [(session_id, e.evidence_id, e.summary, e.source, int(e.external)) for e in evidence],
+        )
+        conn.commit()
+
+
+def load_evidence(session_id: str, *, conn: Connection) -> list:
+    from services.api.crew.stages import Evidence
+
+    return [
+        Evidence(r["evidence_id"], r["summary"], r["source"], bool(r["external"]))
+        for r in conn.execute(
+            "SELECT * FROM evidence WHERE session_id = ? ORDER BY evidence_id", (session_id,)
+        ).fetchall()
+    ]
+
+
 def list_sessions(*, conn: Connection) -> list[dict[str, object]]:
     return [
         dict(r)

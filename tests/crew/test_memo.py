@@ -118,7 +118,7 @@ def test_a_room_with_no_documents_says_so_on_the_face_of_the_memo(session, chain
     empty = connect(":memory:")
     try:
         memo = build_memo(session, chain=chain, conn=empty, scores=SCORES, evidence=[])
-        assert memo.evidence_free is True
+        assert memo.ungrounded is True
         assert memo.context == [] and memo.reasoning == []
         rendered = render_markdown(memo)
         assert "no documents in the room" in rendered

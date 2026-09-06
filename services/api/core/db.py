@@ -143,6 +143,23 @@ CREATE TABLE IF NOT EXISTS predictions (
     PRIMARY KEY (session_id, seat, option)
 );
 
+CREATE TABLE IF NOT EXISTS artefacts (
+    session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,      -- framing | idea | score | dissent
+    payload    TEXT NOT NULL,      -- JSON, keyed by seat
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (session_id, kind)
+);
+
+CREATE TABLE IF NOT EXISTS evidence (
+    session_id  TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    evidence_id TEXT NOT NULL,
+    summary     TEXT NOT NULL,
+    source      TEXT NOT NULL,
+    external    INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (session_id, evidence_id)
+);
+
 CREATE TABLE IF NOT EXISTS quotas (
     provider TEXT PRIMARY KEY,
     used     INTEGER NOT NULL
