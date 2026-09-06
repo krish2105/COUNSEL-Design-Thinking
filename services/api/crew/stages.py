@@ -14,7 +14,7 @@ they finish, and a decision that depends on that is not a decision.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 from services.api.core.llm import LLMChain, Message
@@ -69,18 +69,24 @@ def _ask(chain: LLMChain, seat: str, session: Session, task: str, instruction: s
     return seat, obj, response
 
 
-def _fan_out(chain, session, task, instruction, model_cls, speakers=SEATING):
+def _fan_out(chain, session, task, instruction, model_cls, speakers=SEATING, on_progress=None):
     """Ask every seat at once, then return in seating order.
 
     Same reasoning as a debate round: the seats are answering the same question
     from the same state, so concurrency is not a shortcut, and fixed ordering on
     the way out keeps the result reproducible.
     """
+    by_seat = {}
     with ThreadPoolExecutor(max_workers=len(speakers)) as pool:
-        results = list(
-            pool.map(lambda s: _ask(chain, s, session, task, instruction, model_cls), speakers)
-        )
-    by_seat = {seat: obj for seat, obj, _ in results}
+        futures = {
+            pool.submit(_ask, chain, seat, session, task, instruction, model_cls): seat
+            for seat in speakers
+        }
+        for future in as_completed(futures):
+            seat, obj, _ = future.result()
+            by_seat[seat] = obj
+            if on_progress is not None:
+                on_progress(seat, obj)
     return {seat: by_seat[seat] for seat in speakers if seat in by_seat}
 
 
@@ -109,9 +115,21 @@ def collect_ideas(session: Session, *, chain: LLMChain) -> dict[str, Idea]:
 
 
 def collect_scores(
-    session: Session, options: list[str], evidence: list[Evidence], *, chain: LLMChain
+    session: Session,
+    options: list[str],
+    evidence: list[Evidence],
+    *,
+    chain: LLMChain,
+    on_progress=None,
 ) -> dict[str, list[Score]]:
-    """Test — every seat scores every option on all three axes."""
+    """Test — every seat scores every option on all three axes.
+
+    `on_progress(option, seat, score)` fires as each seat finishes. Not a
+    nicety: five seats scoring two options takes about ninety seconds, and a
+    ninety-second synchronous HTTP response dies at every gateway between the
+    browser and the process. Measured: the Next.js dev rewrite returns 500 at
+    exactly 30 seconds while the API happily completes in 103.
+    """
     catalogue = "; ".join(f"{e.evidence_id} ({e.summary})" for e in evidence) or "none supplied"
     scores: dict[str, list[Score]] = {seat: [] for seat in SEATING}
     for option in options:
@@ -124,6 +142,14 @@ def collect_scores(
             f"depends_on MUST list the evidence ids you relied on, from: {catalogue}. "
             "Keep the reason under 80 words.",
             Score,
+            # `option` is bound as a default: a bare closure captures it by
+            # reference, so every callback in the loop would report the LAST
+            # option scored rather than its own.
+            on_progress=(
+                (lambda seat, obj, _option=option: on_progress(_option, seat, obj))
+                if on_progress
+                else None
+            ),
         )
         for seat, score in got.items():
             # The model is asked for the option and sometimes restyles it; the

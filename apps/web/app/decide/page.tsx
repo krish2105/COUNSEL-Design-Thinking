@@ -17,7 +17,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
-import { api, type Counterfactual, type MemoResult, type Ranked } from "@/lib/api";
+import {
+  api,
+  streamScores,
+  type Counterfactual,
+  type MemoResult,
+  type Ranked,
+  type ScoreFrame,
+} from "@/lib/api";
 import { currentSession } from "@/lib/session";
 
 type Row = { evidence_id: string; summary: string; source: string };
@@ -37,6 +44,7 @@ export default function Decide() {
   const [cf, setCf] = useState<Counterfactual | null>(null);
   const [memo, setMemo] = useState<MemoResult | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => setSessionId(currentSession()), []);
@@ -56,15 +64,28 @@ export default function Decide() {
     [],
   );
 
+  /* Streamed, not because a progress bar is nice but because a ~100s
+   * synchronous response dies at every gateway between here and the API — the
+   * dev rewrite returns 500 at exactly 30 seconds. Frames keep it alive, and
+   * the person waiting gets to watch the seats land. */
   const scoreOptions = () =>
     guard("score", async () => {
       if (!sessionId) return;
+      setRanked(null);
+      setCf(null);
+      setProgress([]);
       await api.addEvidence(sessionId, evidence);
-      const result = await api.score(
+      await streamScores(
         sessionId,
         options.split(",").map((o) => o.trim()).filter(Boolean),
+        (f: ScoreFrame) => {
+          if (f.kind === "scored") {
+            setProgress((p) => [...p, `${f.seat} scored ${f.option}`]);
+          } else if (f.kind === "ranked") {
+            setRanked(f.ranked);
+          }
+        },
       );
-      setRanked(result.ranked);
       setCf(await api.counterfactual(sessionId));
     });
 
@@ -143,6 +164,9 @@ export default function Decide() {
       </section>
 
       {error ? <p className="erratum">{error}</p> : null}
+      {busy === "score" && progress.length > 0 ? (
+        <p className="tag">{progress[progress.length - 1]} · {progress.length}</p>
+      ) : null}
 
       {ranked ? (
         <section className="fenced">

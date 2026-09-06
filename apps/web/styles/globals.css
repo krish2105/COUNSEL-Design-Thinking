@@ -80,7 +80,9 @@ body {
   max-width: 28ch;
 }
 
-.masthead nav { display: flex; gap: 1.35rem; }
+/* Wraps, because the nav grew from three tabs to six and a row of tabs that
+   silently runs off the side of a phone is a row of tabs nobody can reach. */
+.masthead nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.35rem; }
 
 .tab {
   font-size: var(--step-0);
@@ -380,7 +382,9 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
   }
   .askbar { flex-direction: column; }
   .masthead { gap: 0.75rem 1.25rem; }
+  .masthead nav { gap: 0.4rem 0.95rem; }
   .brand-tagline { display: none; }
+  .room-open select { width: 100%; }
 }
 
 /* ── the room ───────────────────────────────────────────────────────────── */

@@ -59,8 +59,26 @@ Phase B: the crew.
 | **The Auditor** | Four mechanical rules. **5 of 5** real model turns caught fabricating a source. |
 | **The Room** | A live tab: open a session, run a round, watch five seats argue, and interject as Chair. Each seat's dissent thickens the margin rule in its own colour; the Auditor's findings sit in the margin beside the words that caused them. |
 
-Phases C–E add the seven design-thinking stages, the memo and dissent log, the 3D round table,
-the outcome ledger and the OWASP harness.
+Phase C: the decision.
+
+| | |
+|---|---|
+| **Stages** | The seven design-thinking stages as validated artefacts — a framing that must be a question, a score that cannot misreport its own weakest axis. |
+| **The memo** | Every body claim resolves to a verbatim span. What fails is recorded under *Asserted without evidence*, never dropped. |
+| **What would change our mind** | Executable. Remove one piece of evidence, re-aggregate, report the flip — as arithmetic, and labelled as sensitivity analysis rather than a re-argument. |
+| **The ledger** | Brier calibration per seat, refusing to show a score below five outcomes. |
+
+Phases D–E add the 3D round table with replay, the OWASP harness and the Term 4 artefacts.
+
+## Two things a real run changed
+
+**All five seats dissented from the memo's own recommendation.** The scores gave
+hypermarket 55 to plant's 51, so the memo recommended the hypermarket — then every seat,
+asked individually, disagreed. A 4-point margin across five seats and three axes is inside
+the noise. The memo now says so above the ranking table.
+
+**A ~100-second request dies at every gateway.** The same scoring call returns 500 at exactly
+30 seconds through a proxy and 200 after 103 seconds direct. Everything long is streamed.
 
 ## The finding that shaped Phase B
 
@@ -77,12 +95,13 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 - [docs/datasets.md](docs/datasets.md) — every source, with licence, verification date and fallback
 - [docs/models.md](docs/models.md) — model choices and the spikes that decided them
 - [docs/crew.md](docs/crew.md) — the mandates, their blind spots, and the Auditor's measured limits
+- [docs/decisions.md](docs/decisions.md) — the stages, what the memo guarantees, and what it does not
 - [docs/results/](docs/results/) — every measured number the docs cite
 - [docs/superpowers/plans/](docs/superpowers/plans/) — the master plan and the Phase A task plan
 
 ## Testing
 
 ```bash
-make check   # ruff, 231 pytest, contrast gate, placeholder scan, typecheck
-make e2e     # 28 Playwright tests on desktop and mobile (needs `make api` and `make web`)
+make check   # ruff, 304 pytest, contrast gate, placeholder scan, typecheck
+make e2e     # 40 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 ```

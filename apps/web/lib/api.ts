@@ -90,18 +90,25 @@ export type Frame =
 
 /* SSE over POST, which EventSource cannot do — it is GET-only. Reading the
  * body stream directly is the standard way round that, and it also lets the
- * caller abort a round mid-flight. */
-export async function streamRound(
-  sessionId: string,
-  onFrame: (f: Frame) => void,
+ * caller abort mid-flight.
+ *
+ * Every long operation in COUNSEL goes through here, and not for the progress
+ * bar. Measured: five seats scoring two options takes ~103s, and the Next.js
+ * rewrite returns 500 at exactly 30 — as would Render's gateway, or Vercel's.
+ * A stream keeps the connection alive because frames keep arriving. */
+async function stream(
+  path: string,
+  onFrame: (f: Record<string, unknown>) => void,
+  init: RequestInit = {},
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`/api/sessions/${sessionId}/rounds/stream`, {
+  const res = await fetch(`/api${path}`, {
     method: "POST",
-    headers: { "X-Counsel-Role": "analyst" },
+    ...init,
+    headers: { "X-Counsel-Role": "analyst", ...(init.headers ?? {}) },
     signal,
   });
-  if (!res.ok || !res.body) throw new Error(`round failed: ${res.status}`);
+  if (!res.ok || !res.body) throw new Error(`stream failed: ${res.status}`);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -118,13 +125,39 @@ export async function streamRound(
     for (const line of lines) {
       if (line.startsWith("event: ")) event = line.slice(7).trim();
       else if (line.startsWith("data: ") && event) {
-        onFrame({ kind: event, ...JSON.parse(line.slice(6)) } as Frame);
+        onFrame({ kind: event, ...JSON.parse(line.slice(6)) });
         event = "";
       }
       // ": ping" keep-alive comments are ignored by falling through.
     }
   }
 }
+
+export const streamRound = (
+  sessionId: string,
+  onFrame: (f: Frame) => void,
+  signal?: AbortSignal,
+) => stream(`/sessions/${sessionId}/rounds/stream`, (f) => onFrame(f as Frame), {}, signal);
+
+export type ScoreFrame =
+  | { kind: "scoring_open"; options: string[]; n_seats: number; evidence: string[] }
+  | { kind: "scored"; option: string; seat: string; confidence: number; weakest_on: string;
+      desirability: number; feasibility: number; viability: number; depends_on: string[] }
+  | { kind: "ranked"; ranked: Ranked[] }
+  | { kind: "done"; n_scores: number };
+
+export const streamScores = (
+  sessionId: string,
+  options: string[],
+  onFrame: (f: ScoreFrame) => void,
+  signal?: AbortSignal,
+) =>
+  stream(
+    `/sessions/${sessionId}/scores/stream`,
+    (f) => onFrame(f as ScoreFrame),
+    { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ options }) },
+    signal,
+  );
 
 export type Ranked = { option: string; total: number; mean_confidence: number; supporters: string[] };
 export type FlipRow = {

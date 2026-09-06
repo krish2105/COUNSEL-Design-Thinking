@@ -8,12 +8,15 @@ user does, with the file, after reading it.
 
 from __future__ import annotations
 
+import anyio
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sse_starlette.sse import EventSourceResponse
 
 from services.api import deps
 from services.api.core.rbac import Scope, require
 from services.api.core.schemas import Score
+from services.api.core.stream import event
 from services.api.crew import ledger as ledger_mod
 from services.api.crew import store
 from services.api.crew.counterfactual import flips, robustness, sensitivity
@@ -110,6 +113,56 @@ def _stored_scores(session_id: str) -> dict[str, list[Score]]:
     if not payload:
         raise HTTPException(409, "the room has not scored the options yet — run /scores first")
     return {seat: [Score(**s) for s in items] for seat, items in payload.items()}
+
+
+@router.post("/scores/stream", dependencies=[Depends(require(Scope.SESSION_WRITE))])
+async def scores_stream(session_id: str, body: ScoreRequest) -> EventSourceResponse:
+    """Scoring, streamed.
+
+    Five seats across two options is roughly ninety seconds of model time, and a
+    ninety-second synchronous response dies at every gateway between the browser
+    and this process — measured: the Next.js dev rewrite returns 500 at exactly
+    30 seconds while the API completes in 103. Streaming keeps the connection
+    alive AND gives the person watching something to look at, which is the
+    reason to prefer it over raising a timeout somewhere.
+    """
+    session = _session(session_id)
+    session.stage = Stage.TEST
+    conn = deps.db()
+    evidence = store.load_evidence(session_id, conn=conn)
+    seen: list[tuple[str, str, Score]] = []
+
+    async def frames():
+        yield event(
+            "scoring_open",
+            {"options": body.options, "n_seats": 5, "evidence": [e.evidence_id for e in evidence]},
+        )
+
+        result = await anyio.to_thread.run_sync(
+            lambda: collect_scores(
+                session,
+                body.options,
+                evidence,
+                chain=deps.llm(),
+                on_progress=lambda option, seat, score: seen.append((option, seat, score)),
+            )
+        )
+
+        for option, seat, score in seen:
+            yield event("scored", {"option": option, "seat": seat, **score.model_dump()})
+
+        store.save_artefacts(session_id, "score", result, conn=conn)
+        for seat, seat_scores in result.items():
+            for score in seat_scores:
+                ledger_mod.record_prediction(
+                    session_id, seat, score.option, score.confidence, conn=conn
+                )
+
+        ranked = aggregate(result)
+        yield event("ranked", {"ranked": [r.__dict__ for r in ranked]})
+        yield event("done", {"n_scores": sum(len(v) for v in result.values())})
+
+    return EventSourceResponse(frames())
 
 
 @router.get("/counterfactual", dependencies=[Depends(require(Scope.READ))])
