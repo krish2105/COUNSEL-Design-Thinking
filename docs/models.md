@@ -75,6 +75,27 @@ appeared once both models were run against a real corpus. See
 reason. Before it was, the CI machine had no Ollama, so local runs tested
 bge-m3, CI tested MiniLM, and neither tested the other.
 
+### The deployed chain, and what is not yet measured
+
+The deployed API resolves its embedder through a chain — Ollama, then Gemini's
+free tier, then the in-process ONNX model — and keeps whichever it picks for the
+life of the process. It does not fail over per call: that would leave half a
+corpus in one vector space and half in another, and every later query would
+silently retrieve from whichever half matched its own space.
+
+| Order | Backend | Model | dim | Status |
+|---|---|---|---:|---|
+| 1 | Ollama | `bge-m3:567m` | 1024 | **Measured** — the table above |
+| 2 | Gemini | `gemini-embedding-001` | 768 | ⚠ **UNVERIFIED** |
+| 3 | fastembed | `paraphrase-multilingual-MiniLM-L12-v2` | 384 | **Measured** — the table above |
+
+**The Gemini row is unverified and is marked as such deliberately.** No
+`GEMINI_API_KEY` was available when it was built, so its free-tier request
+limits and its real output dimensionality come from the documented contract
+rather than from a measurement. `scripts/spike_embeddings.py` records the actual
+numbers the first time a key is present, and this row stays marked until it has.
+Nothing in COUNSEL cites a figure for it in the meantime.
+
 ### Why there are two at all
 
 The deployed API has no Ollama, so it must embed in-process. Render's free tier
