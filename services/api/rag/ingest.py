@@ -27,6 +27,7 @@ from typing import Literal
 
 from services.api.core.db import ensure_vector_table
 from services.api.rag.embed import Embedder, get_embedder, model_key
+from services.api.rag.untrusted import scan
 
 Trust = Literal["untrusted"]
 
@@ -177,6 +178,16 @@ def ingest(
         ),
     )
 
+    # Scanned once, at the boundary, and recorded. A document that tries to
+    # instruct the model is still ingested and still retrievable — refusing it
+    # would let an attacker delete evidence by poisoning it — but every agent
+    # and the Data tab can see what it tried.
+    conn.executemany(
+        "INSERT OR IGNORE INTO doc_findings(doc_id, pattern, severity, start, end, excerpt) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        [(doc_id, f.pattern, f.severity, f.span[0], f.span[1], f.excerpt) for f in scan(text)],
+    )
+
     chunks = [
         Chunk(
             chunk_id=f"{doc_id[:16]}:{ordinal:04d}",
@@ -220,6 +231,18 @@ def _pack(vector: list[float]) -> bytes:
     import struct
 
     return struct.pack(f"{len(vector)}f", *vector)
+
+
+def findings_for(doc_id: str, *, conn: Connection) -> list[dict[str, object]]:
+    """What the scanner found in this document, in document order."""
+    return [
+        dict(r)
+        for r in conn.execute(
+            "SELECT pattern, severity, start, end, excerpt FROM doc_findings "
+            "WHERE doc_id = ? ORDER BY start",
+            (doc_id,),
+        ).fetchall()
+    ]
 
 
 def document_text(doc_id: str, *, conn: Connection) -> str:

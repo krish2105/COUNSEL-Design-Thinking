@@ -128,3 +128,25 @@ def test_an_unsupported_type_is_refused_by_name(conn, tmp_path):
     bad.write_bytes(b"not really a deck")
     with pytest.raises(ValueError, match="unsupported document type"):
         ingest(bad, conn=conn)
+
+
+def test_a_poisoned_document_is_ingested_and_its_findings_recorded(conn):
+    """Refusing the upload would let an attacker delete evidence by poisoning
+    it. COUNSEL takes it, indexes it, and records what it tried."""
+    from services.api.rag.ingest import findings_for
+
+    injected = Path(__file__).resolve().parents[1] / "fixtures/injection/poisoned-plan.md"
+    doc_id, chunks = ingest(injected, conn=conn)
+
+    assert chunks, "the document is still ingested and still retrievable"
+    findings = findings_for(doc_id, conn=conn)
+    assert len({f["pattern"] for f in findings}) >= 5
+    assert all(f["severity"] in {"high", "medium"} for f in findings)
+    assert [f["start"] for f in findings] == sorted(f["start"] for f in findings)
+
+
+def test_a_clean_document_records_no_findings(conn):
+    from services.api.rag.ingest import findings_for
+
+    doc_id, _ = ingest(FIXTURES / "board-paper.pdf", conn=conn)
+    assert findings_for(doc_id, conn=conn) == []

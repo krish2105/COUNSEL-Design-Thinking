@@ -61,6 +61,19 @@ CREATE TABLE IF NOT EXISTS vector_index (
 );
 CREATE INDEX IF NOT EXISTS idx_vector_model ON vector_index(model_key);
 
+-- What the untrusted-content scanner found in an uploaded document. Recorded
+-- at ingest so the Data tab can show it and Phase E's harness can assert on it,
+-- rather than being computed again at every prompt build.
+CREATE TABLE IF NOT EXISTS doc_findings (
+    doc_id      TEXT NOT NULL REFERENCES documents(doc_id) ON DELETE CASCADE,
+    pattern     TEXT NOT NULL,
+    severity    TEXT NOT NULL,
+    start       INTEGER NOT NULL,
+    end         INTEGER NOT NULL,
+    excerpt     TEXT NOT NULL,
+    PRIMARY KEY (doc_id, start, pattern)
+);
+
 CREATE TABLE IF NOT EXISTS quotas (
     provider TEXT PRIMARY KEY,
     used     INTEGER NOT NULL
