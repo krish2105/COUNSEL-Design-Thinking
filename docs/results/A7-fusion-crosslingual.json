@@ -1,0 +1,25 @@
+{
+  "generated_by": "measured by hand against the running API on 2026-09-07, then frozen as tests/rag/test_retrieve.py::test_fusion_does_not_bury_a_translation_under_english_mass",
+  "finding": "Textbook Reciprocal Rank Fusion silently destroyed cross-lingual retrieval on an English-heavy corpus.",
+  "query": "Why did the CFO object to the payback period?",
+  "corpus": ["trilingual.md (5 chunks)", "board-paper.pdf (1 chunk)", "poisoned-plan.md (10 chunks)"],
+  "cause": "RRF sums reciprocal ranks across both lists, assuming both retrievers could rank any document. A Hindi or Arabic chunk can never appear in a BM25 list for an English query because it shares no tokens, so it collected roughly half the fused score of any English chunk BM25 ranked for any reason.",
+  "before": {
+    "fusion": "sum of reciprocal ranks over both arms",
+    "hindi": {"rank_vector_arm": 1, "rank_fused": 11, "score": 0.01613},
+    "arabic": {"rank_vector_arm": 2, "rank_fused": 12, "score": 0.01587},
+    "unrelated_english_control": {
+      "text": "The marketing team prefers bright packaging for summer drinks.",
+      "rank_vector_arm": 8, "rank_fused": 7, "score": 0.02942
+    },
+    "consequence": "the translations of the exact query ranked below a passage about summer drinks, and nothing failed"
+  },
+  "after": {
+    "fusion": "mean of reciprocal ranks over ELIGIBLE arms; a chunk sharing no query token is not BM25-eligible",
+    "hindi": {"rank_vector_arm": 1, "rank_fused": 1, "score": 0.01613},
+    "arabic": {"rank_vector_arm": 2, "rank_fused": 2, "score": 0.01587},
+    "unrelated_english_control": {"rank_fused": 8}
+  },
+  "principle": "An arm that structurally cannot express an opinion about a document must not be counted as having voted against it.",
+  "verification": "The regression test was confirmed to fail with textbook RRF restored ('a translation of the exact query fell out of the top 4: [en, en, en, en]') and pass with the fix."
+}
