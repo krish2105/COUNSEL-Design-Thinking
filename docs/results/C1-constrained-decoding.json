@@ -1,0 +1,30 @@
+{
+  "generated_by": "measured against qwen3:8b via Ollama during Phase C, task C1",
+  "finding": "Schema-constrained decoding removes one class of failure and introduces two quieter ones.",
+  "what_it_fixed": "The model can no longer return prose where an object was asked for. Ollama constrains decoding to the JSON Schema, Gemini takes a flattened responseSchema, and Groq falls back to JSON mode plus validation.",
+  "failure_1_token_budget": {
+    "observed": "A Framing requested with max_tokens=300 returned why_it_matters cut mid-sentence (ending in a stray CJK character) and whose_problem containing the SPILLOVER of the previous field.",
+    "why_it_is_dangerous": "The grammar closes the object when the budget runs out, so the result parses AND validates. Field lengths were satisfied. Nothing downstream could detect it from the value alone.",
+    "fix": "LLMResponse.truncated is now set from Ollama done_reason==length, Gemini finishReason==MAX_TOKENS and Groq finish_reason==length. structured() treats truncation as a validation failure and retries. Default budget raised to 700 tokens."
+  },
+  "failure_2_maxlength_in_the_grammar": {
+    "observed": "With reason capped at 400 chars the model produced '...a cheaper, faster pilot in a hyperm' — cut mid-word, with truncated=False, because the GRAMMAR stopped it rather than the token budget.",
+    "why_it_is_subtle": "max_length in a pydantic model is a validation bound, but Ollama enforces it inside the decoder. A tight ceiling does not make the model write less; it makes it write the same sentence and get cut in half.",
+    "fix": "Free-text ceilings raised well above what the mandates are asked to produce; brevity is requested in the prompt, where it belongs. The ceiling is a runaway guard, not a style instruction."
+  },
+  "failure_3_empty_dependencies": {
+    "observed": "Given three evidence ids in the prompt, and citing all three in its own reason text, the model returned depends_on: [].",
+    "why_it_is_dangerous": "The counterfactual engine computes which evidence would flip a decision from these links. A score claiming to rest on nothing is silently excluded from the sensitivity analysis, which UNDERSTATES how fragile the decision is.",
+    "fix": "depends_on is now Field(min_length=1). The same prompt then returned [e1, e2, e3]."
+  },
+  "after_all_three_fixes": {
+    "truncated": false,
+    "depends_on": [
+      "e1",
+      "e2",
+      "e3"
+    ],
+    "reason_ends": "Viability is weakest due to unmeasured operational risks."
+  },
+  "lesson": "A schema that validates is not the same as output that means anything. Two of these three failures produced objects that passed every check the schema could make."
+}
