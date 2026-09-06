@@ -14,7 +14,15 @@ export const LANG_LABEL: Record<Lang, string> = { en: "EN", hi: "हि", ar: "�
 type Dict = {
   brand: string;
   tagline: string;
-  nav: { documents: string; ask: string; security: string };
+  nav: { room: string; documents: string; ask: string; security: string };
+  room: {
+    title: string; lede: string; question: string; stage: string; open: string;
+    opened: string; round: string; runRound: string; arguing: string; stop: string;
+    record: string; sealed: string; broken: string; flags: string; unsigned: string;
+    unsignedNote: string; auditor: string; chair: string; chairLede: string;
+    chairPlaceholder: string; speak: string; chairHeard: string;
+    blindSpots: string; blindSpotsLede: string;
+  };
   documents: {
     title: string;
     lede: string;
@@ -56,7 +64,33 @@ type Dict = {
 const en: Dict = {
   brand: "COUNSEL",
   tagline: "Five mandates argue. The record outlives the argument.",
-  nav: { documents: "Documents", ask: "Ask", security: "Security" },
+  nav: { room: "Room", documents: "Documents", ask: "Ask", security: "Security" },
+  room: {
+    title: "The Room",
+    lede: "Five mandates argue the decision. You can watch them think, and you can interrupt.",
+    question: "The decision",
+    stage: "Stage",
+    open: "Open the room",
+    opened: "Room open. Nobody has spoken yet.",
+    round: "Round",
+    runRound: "Run a round",
+    arguing: "Arguing",
+    stop: "Stop",
+    record: "Record",
+    sealed: "sealed",
+    broken: "chain broken",
+    flags: "flagged",
+    unsigned: "draft",
+    unsignedNote: "spoken, not yet sealed",
+    auditor: "What the Auditor caught",
+    chair: "Speak as Chair",
+    chairLede: "Your interjection is recorded as a signed turn like any other. You are a participant in the record, not an editor of it.",
+    chairPlaceholder: "Assume the plant loses a shift in Q1. Re-argue.",
+    speak: "Speak",
+    chairHeard: "Chair recorded. The room will hear it next round.",
+    blindSpots: "What each seat admits it gets wrong",
+    blindSpotsLede: "Divergence only works if the room's biases are on the table. Read these before weighing anything above.",
+  },
   documents: {
     title: "Documents",
     lede: "What the board has read. Every upload is treated as something a stranger wrote.",
@@ -98,7 +132,33 @@ const en: Dict = {
 const hi: Dict = {
   brand: "COUNSEL",
   tagline: "पाँच अधिदेश बहस करते हैं। अभिलेख बहस से अधिक टिकता है।",
-  nav: { documents: "दस्तावेज़", ask: "पूछें", security: "सुरक्षा" },
+  nav: { room: "कक्ष", documents: "दस्तावेज़", ask: "पूछें", security: "सुरक्षा" },
+  room: {
+    title: "कक्ष",
+    lede: "पाँच अधिदेश निर्णय पर बहस करते हैं। आप उन्हें सोचते देख सकते हैं, और बीच में बोल सकते हैं।",
+    question: "निर्णय",
+    stage: "चरण",
+    open: "कक्ष खोलें",
+    opened: "कक्ष खुला। अभी किसी ने कुछ नहीं कहा।",
+    round: "दौर",
+    runRound: "एक दौर चलाएँ",
+    arguing: "बहस जारी",
+    stop: "रोकें",
+    record: "अभिलेख",
+    sealed: "मुद्रित",
+    broken: "शृंखला टूटी",
+    flags: "चिह्नित",
+    unsigned: "प्रारूप",
+    unsignedNote: "कहा गया, अभी मुद्रित नहीं",
+    auditor: "अंकेक्षक ने क्या पकड़ा",
+    chair: "अध्यक्ष के रूप में बोलें",
+    chairLede: "आपका हस्तक्षेप किसी भी अन्य की तरह हस्ताक्षरित प्रविष्टि के रूप में दर्ज होता है। आप अभिलेख के प्रतिभागी हैं, संपादक नहीं।",
+    chairPlaceholder: "मान लें संयंत्र पहली तिमाही में एक पाली खो देता है। फिर से तर्क करें।",
+    speak: "बोलें",
+    chairHeard: "अध्यक्ष दर्ज। कक्ष अगले दौर में सुनेगा।",
+    blindSpots: "हर पक्ष अपनी कौन-सी कमज़ोरी मानता है",
+    blindSpotsLede: "विचलन तभी काम करता है जब कक्ष के पूर्वाग्रह सामने हों। ऊपर कुछ भी तौलने से पहले इन्हें पढ़ें।",
+  },
   documents: {
     title: "दस्तावेज़",
     lede: "बोर्ड ने क्या पढ़ा है। हर अपलोड को किसी अजनबी का लिखा माना जाता है।",
@@ -140,7 +200,33 @@ const hi: Dict = {
 const ar: Dict = {
   brand: "COUNSEL",
   tagline: "خمسة تفويضات تتجادل. والسجل يبقى بعد الجدال.",
-  nav: { documents: "المستندات", ask: "اسأل", security: "الأمن" },
+  nav: { room: "القاعة", documents: "المستندات", ask: "اسأل", security: "الأمن" },
+  room: {
+    title: "القاعة",
+    lede: "خمسة تفويضات تتجادل حول القرار. يمكنك أن تراها تفكر، ويمكنك أن تقاطع.",
+    question: "القرار",
+    stage: "المرحلة",
+    open: "افتح القاعة",
+    opened: "القاعة مفتوحة. لم يتحدث أحد بعد.",
+    round: "الجولة",
+    runRound: "شغّل جولة",
+    arguing: "الجدال جارٍ",
+    stop: "أوقف",
+    record: "السجل",
+    sealed: "مختوم",
+    broken: "السلسلة مكسورة",
+    flags: "مُعلَّم",
+    unsigned: "مسودة",
+    unsignedNote: "قيل، ولم يُختم بعد",
+    auditor: "ما التقطه المدقق",
+    chair: "تحدث بصفتك الرئيس",
+    chairLede: "تُسجَّل مداخلتك كمداخلة موقَّعة مثل أي مداخلة أخرى. أنت مشارك في السجل، لا محرر له.",
+    chairPlaceholder: "افترض أن المصنع يفقد وردية في الربع الأول. أعد الجدال.",
+    speak: "تحدث",
+    chairHeard: "سُجِّل الرئيس. ستسمعه القاعة في الجولة القادمة.",
+    blindSpots: "ما يعترف كل مقعد بأنه يخطئ فيه",
+    blindSpotsLede: "لا ينجح التباعد إلا إذا كانت تحيزات القاعة على الطاولة. اقرأ هذه قبل أن تزن ما سبق.",
+  },
   documents: {
     title: "المستندات",
     lede: "ما قرأه المجلس. كل ملف مرفوع يُعامل كنص كتبه شخص غريب.",

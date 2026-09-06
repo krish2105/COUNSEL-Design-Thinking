@@ -382,3 +382,54 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
   .masthead { gap: 0.75rem 1.25rem; }
   .brand-tagline { display: none; }
 }
+
+/* ── the room ───────────────────────────────────────────────────────────── */
+
+.room-open select {
+  padding: 0.65rem 0.6rem;
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+}
+
+.room-bar {
+  max-width: var(--measure);
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.room-bar .meta { margin-bottom: 0.9rem; }
+.room-bar .tag { margin-top: 0.85rem; }
+
+.chair { margin-top: 3rem; }
+.chair .lede { margin-bottom: 0.75rem; }
+
+.blind-spots {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.blind-spots li {
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* A flag sits with the words that caused it, in the same ink-and-rule
+   treatment as any other erratum. It is not a coloured badge: colour in
+   COUNSEL means a seat spoke, and the Auditor is not a seat. */
+.rail-entry .erratum {
+  margin-top: 0.7rem;
+  font-size: var(--step--1);
+}
+.rail-entry .erratum strong {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-inline-end: 0.4rem;
+}

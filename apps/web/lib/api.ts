@@ -60,7 +60,95 @@ export type Finding = {
   excerpt: string;
 };
 
+export type Seat = {
+  id: string;
+  title: string;
+  accountable_for: string;
+  values: string[];
+  blind_spots: string[];
+  evidence_standards: string[];
+  tools: string[];
+};
+
+export type SessionState = {
+  session_id: string;
+  question: string;
+  stage: string;
+  rules: string[];
+  round_no: number;
+  closed: boolean;
+  n_turns: number;
+  chain_intact: boolean;
+};
+
+export type Frame =
+  | { kind: "round_open"; round_no: number; speakers: string[]; stage: string; rules: string[] }
+  | { kind: "speaking"; seat: string; text: string; signed: false }
+  | { kind: "turn"; turn_id: string; speaker: string; text: string; provider: string; model: string; sig: string; signed: true }
+  | { kind: "flag"; turn_id: string; rule: string; severity: string; excerpt: string; why: string }
+  | { kind: "done"; n_turns: number; n_flags: number; chain_intact: boolean };
+
+/* SSE over POST, which EventSource cannot do — it is GET-only. Reading the
+ * body stream directly is the standard way round that, and it also lets the
+ * caller abort a round mid-flight. */
+export async function streamRound(
+  sessionId: string,
+  onFrame: (f: Frame) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`/api/sessions/${sessionId}/rounds/stream`, {
+    method: "POST",
+    headers: { "X-Counsel-Role": "analyst" },
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error(`round failed: ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let event = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line.startsWith("event: ")) event = line.slice(7).trim();
+      else if (line.startsWith("data: ") && event) {
+        onFrame({ kind: event, ...JSON.parse(line.slice(6)) } as Frame);
+        event = "";
+      }
+      // ": ping" keep-alive comments are ignored by falling through.
+    }
+  }
+}
+
 export const api = {
+  seats: () => call<Seat[]>("/sessions/seats", {}, "viewer"),
+  openSession: (question: string, stage: string) =>
+    call<SessionState>("/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, stage }),
+    }),
+  session: (id: string) => call<SessionState>(`/sessions/${id}`, {}, "viewer"),
+  interject: (id: string, text: string) =>
+    call<{ turn_id: string; speaker: string; text: string }>(`/sessions/${id}/interject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    }),
+  advanceStage: (id: string, stage: string) =>
+    call<SessionState>(`/sessions/${id}/stage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stage }),
+    }),
+  verify: (id: string) =>
+    call<{ intact: boolean; broken_turns: string[]; n_turns: number }>(`/sessions/${id}/verify`, {}, "viewer"),
   health: () => call<Record<string, unknown>>("/healthz", {}, "viewer"),
   documents: () => call<DocumentRow[]>("/documents", {}, "viewer"),
   upload: (file: File) => {

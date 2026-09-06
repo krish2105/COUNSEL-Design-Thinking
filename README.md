@@ -57,6 +57,7 @@ Phase B: the crew.
 | **Rounds** | Deterministic turn-taking in Python; the five seats speak concurrently against the previous round's transcript. A real 3-round debate on `qwen3:8b` takes **126.5 s** against a 240 s target. |
 | **The record** | Every turn signed into a hash chain. Editing turn 2 of 5 breaks 2, 3, 4 and 5. `/verify` re-reads the stored rows. |
 | **The Auditor** | Four mechanical rules. **5 of 5** real model turns caught fabricating a source. |
+| **The Room** | A live tab: open a session, run a round, watch five seats argue, and interject as Chair. Each seat's dissent thickens the margin rule in its own colour; the Auditor's findings sit in the margin beside the words that caused them. |
 
 Phases C–E add the seven design-thinking stages, the memo and dissent log, the 3D round table,
 the outcome ledger and the OWASP harness.
@@ -83,5 +84,5 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 
 ```bash
 make check   # ruff, 231 pytest, contrast gate, placeholder scan, typecheck
-make e2e     # 8 Playwright tests on desktop and mobile (needs `make api` and `make web`)
+make e2e     # 28 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 ```

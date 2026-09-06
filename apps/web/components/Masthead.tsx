@@ -15,6 +15,7 @@ export function Masthead() {
   useEffect(() => setMounted(true), []);
 
   const tabs = [
+    { href: "/room", label: t.nav.room },
     { href: "/", label: t.nav.documents },
     { href: "/ask", label: t.nav.ask },
     { href: "/security", label: t.nav.security },
