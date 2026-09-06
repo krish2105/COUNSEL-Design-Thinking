@@ -1,0 +1,87 @@
+{
+  "generated_by": "scripts/audit_recall.py",
+  "run_at": "2026-09-06T20:31:54Z",
+  "corpus": "tests/fixtures/audit/breaches.jsonl",
+  "n_cases": 42,
+  "n_breaches": 24,
+  "n_clean": 18,
+  "thresholds": {
+    "min_recall": 0.9,
+    "max_false_positive_rate": 0.15
+  },
+  "recall": 1.0,
+  "false_positive_rate": 0.0,
+  "recall_per_rule": {
+    "ad-hominem": {
+      "caught": 6,
+      "of": 6,
+      "recall": 1.0
+    },
+    "fabricated-source": {
+      "caught": 6,
+      "of": 6,
+      "recall": 1.0
+    },
+    "stage-rule": {
+      "caught": 6,
+      "of": 6,
+      "recall": 1.0
+    },
+    "unsupported-number": {
+      "caught": 6,
+      "of": 6,
+      "recall": 1.0
+    }
+  },
+  "missed": [],
+  "false_positives": [],
+  "passes": true,
+  "held_out_evaluation": {
+    "available": true,
+    "source": "docs/results/B4-mandate-differentiation.json",
+    "note": "Five real qwen3:8b turns, authored by the model before the Auditor existed. The room had no documents, so every attribution in them is fabricated.",
+    "seats_with_a_fabricated_source_flag": 5,
+    "of_seats": 5,
+    "rows": [
+      {
+        "seat": "cfo",
+        "rules": [
+          "fabricated-source",
+          "unsupported-number"
+        ],
+        "n_flags": 2
+      },
+      {
+        "seat": "cmo",
+        "rules": [
+          "fabricated-source",
+          "unsupported-number"
+        ],
+        "n_flags": 2
+      },
+      {
+        "seat": "coo",
+        "rules": [
+          "fabricated-source",
+          "unsupported-number"
+        ],
+        "n_flags": 2
+      },
+      {
+        "seat": "ethics",
+        "rules": [
+          "fabricated-source"
+        ],
+        "n_flags": 1
+      },
+      {
+        "seat": "devil",
+        "rules": [
+          "fabricated-source",
+          "unsupported-number"
+        ],
+        "n_flags": 2
+      }
+    ]
+  }
+}

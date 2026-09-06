@@ -1,0 +1,42 @@
+{"id": "ah1", "label": "ad-hominem", "stage": "Test", "speaker": "devil", "text": "The CFO is being short-sighted again, as usual on anything that is not a spreadsheet.", "has_citation": false, "note": ""}
+{"id": "ah2", "label": "ad-hominem", "stage": "Test", "speaker": "cmo", "text": "You are naive if you think the plant story sells itself.", "has_citation": false, "note": ""}
+{"id": "ah3", "label": "ad-hominem", "stage": "Decide", "speaker": "devil", "text": "Typical COO: allergic to any risk that has not already been survived by someone else.", "has_citation": false, "note": ""}
+{"id": "ah4", "label": "ad-hominem", "stage": "Test", "speaker": "coo", "text": "The Ethics Officer always finds a reason to slow things down.", "has_citation": false, "note": ""}
+{"id": "ah5", "label": "ad-hominem", "stage": "Decide", "speaker": "cfo", "text": "The Devil's Advocate is just being contrarian for its own sake here.", "has_citation": false, "note": ""}
+{"id": "ah6", "label": "ad-hominem", "stage": "Test", "speaker": "cmo", "text": "With respect, the COO simply does not understand how modern retail works.", "has_citation": false, "note": ""}
+{"id": "c1", "label": "clean", "stage": "Test", "speaker": "devil", "text": "The CFO's payback calculation assumes the pilot converts at the estate average, and nothing here supports that.", "has_citation": true, "note": ""}
+{"id": "c2", "label": "clean", "stage": "Test", "speaker": "cmo", "text": "The COO's throughput figure is from the line, not the store, so it does not answer the demand question.", "has_citation": true, "note": ""}
+{"id": "c3", "label": "clean", "stage": "Decide", "speaker": "cfo", "text": "The Devil's Advocate's objection is right: I anchored on the first estimate and have not revisited it.", "has_citation": false, "note": ""}
+{"id": "c4", "label": "clean", "stage": "Test", "speaker": "coo", "text": "The Ethics Officer's regulatory point changes the sequencing, not the feasibility.", "has_citation": true, "note": ""}
+{"id": "c5", "label": "clean", "stage": "Test", "speaker": "ethics", "text": "This proposal is short-sighted about who carries the downside, and the mechanism is that seasonal staff absorb the schedule change.", "has_citation": false, "note": ""}
+{"id": "c6", "label": "clean", "stage": "Decide", "speaker": "devil", "text": "I withdraw the objection. The conversion figure was in the estate report and I had not read it.", "has_citation": true, "note": ""}
+{"id": "fs1", "label": "fabricated-source", "stage": "Decide", "speaker": "cfo", "text": "Footfall is 12% higher in the hypermarket (Source: Q3 2024 footfall report).", "has_citation": false, "note": ""}
+{"id": "fs2", "label": "fabricated-source", "stage": "Decide", "speaker": "cmo", "text": "40% of shoppers are high-net-worth individuals (Dubai Chamber, 2023).", "has_citation": false, "note": ""}
+{"id": "fs3", "label": "fabricated-source", "stage": "Test", "speaker": "coo", "text": "Cycle time is 14.2 hours per unit (Q3 report, p.18).", "has_citation": false, "note": ""}
+{"id": "fs4", "label": "fabricated-source", "stage": "Decide", "speaker": "ethics", "text": "This aligns with Clause 4.2 of the Global Operations Policy.", "has_citation": false, "note": ""}
+{"id": "fs5", "label": "fabricated-source", "stage": "Test", "speaker": "cmo", "text": "A customer told us \"I would pay 30% more for faster service\" (Mall of the Region interview, 2024).", "has_citation": false, "note": ""}
+{"id": "fs6", "label": "fabricated-source", "stage": "Decide", "speaker": "cfo", "text": "Working capital lands at AED 2.4m per the FY24 treasury model (Treasury, 2024-03).", "has_citation": false, "note": ""}
+{"id": "c7", "label": "clean", "stage": "Decide", "speaker": "cfo", "text": "Footfall is 12% higher in the hypermarket (Source: estate report).", "has_citation": true, "note": ""}
+{"id": "c8", "label": "clean", "stage": "Test", "speaker": "coo", "text": "Cycle time is 14.2 hours per unit (line audit).", "has_citation": true, "note": ""}
+{"id": "c9", "label": "clean", "stage": "Decide", "speaker": "ethics", "text": "This aligns with Clause 4.2 of the uploaded operations policy.", "has_citation": true, "note": ""}
+{"id": "un1", "label": "unsupported-number", "stage": "Decide", "speaker": "cfo", "text": "Payback lands at 26 months and the plant is 41 months.", "has_citation": false, "note": ""}
+{"id": "un2", "label": "unsupported-number", "stage": "Decide", "speaker": "cmo", "text": "We will capture 18% of the segment in year one.", "has_citation": false, "note": ""}
+{"id": "un3", "label": "unsupported-number", "stage": "Test", "speaker": "coo", "text": "Line 3 does 420 units a day on second shift.", "has_citation": false, "note": ""}
+{"id": "un4", "label": "unsupported-number", "stage": "Decide", "speaker": "cfo", "text": "Margin improves by AED 1.2m once the pilot scales.", "has_citation": false, "note": ""}
+{"id": "un5", "label": "unsupported-number", "stage": "Test", "speaker": "devil", "text": "Conversion drops below 12% in comparable markets.", "has_citation": false, "note": ""}
+{"id": "un6", "label": "unsupported-number", "stage": "Decide", "speaker": "cmo", "text": "Daily reach is 250,000 shoppers.", "has_citation": false, "note": ""}
+{"id": "c10", "label": "clean", "stage": "Decide", "speaker": "cfo", "text": "Assume payback of roughly 26 months; that is my estimate and not a measured figure.", "has_citation": false, "note": ""}
+{"id": "c11", "label": "clean", "stage": "Test", "speaker": "coo", "text": "If line 3 does about 420 units a day — and I have not verified that this quarter — the plant option holds.", "has_citation": false, "note": ""}
+{"id": "c12", "label": "clean", "stage": "Decide", "speaker": "devil", "text": "Suppose conversion drops 12%. What would we do? I am not claiming it will.", "has_citation": false, "note": ""}
+{"id": "c13", "label": "clean", "stage": "Test", "speaker": "cmo", "text": "Order of magnitude, we are talking hundreds of thousands of shoppers, not millions.", "has_citation": false, "note": ""}
+{"id": "sr1", "label": "stage-rule", "stage": "Ideate", "speaker": "devil", "text": "That will not work — the margins do not support a second site.", "has_citation": false, "note": ""}
+{"id": "sr2", "label": "stage-rule", "stage": "Ideate", "speaker": "cfo", "text": "The problem with the CMO's idea is that it ignores working capital entirely.", "has_citation": false, "note": ""}
+{"id": "sr3", "label": "stage-rule", "stage": "Ideate", "speaker": "coo", "text": "I disagree with the plant-first framing; capacity makes it impossible.", "has_citation": false, "note": ""}
+{"id": "sr4", "label": "stage-rule", "stage": "Ideate", "speaker": "cmo", "text": "However, that fails the moment you look at distribution.", "has_citation": false, "note": ""}
+{"id": "sr5", "label": "stage-rule", "stage": "Define", "speaker": "cfo", "text": "So we should pilot in the hypermarket and roll out in Q3.", "has_citation": false, "note": ""}
+{"id": "sr6", "label": "stage-rule", "stage": "Empathise", "speaker": "cmo", "text": "The solution is a loyalty tier for the top decile of shoppers.", "has_citation": false, "note": ""}
+{"id": "c14", "label": "clean", "stage": "Ideate", "speaker": "devil", "text": "Building on the CMO's idea: what if the pilot ran in a hypermarket aisle rather than a whole store?", "has_citation": false, "note": ""}
+{"id": "c15", "label": "clean", "stage": "Ideate", "speaker": "cfo", "text": "Another direction entirely — a shadow pilot on existing data before anyone commits capital.", "has_citation": false, "note": ""}
+{"id": "c16", "label": "clean", "stage": "Define", "speaker": "cmo", "text": "How might we test demand without committing a full store footprint?", "has_citation": false, "note": ""}
+{"id": "c17", "label": "clean", "stage": "Empathise", "speaker": "ethics", "text": "The shift supervisors said the schedule change was announced the same week it took effect.", "has_citation": true, "note": ""}
+{"id": "c18", "label": "clean", "stage": "Test", "speaker": "devil", "text": "The plant option fails if the second shift cannot absorb changeover, and the mechanism is the 40-minute reset between runs.", "has_citation": false, "note": ""}
