@@ -48,19 +48,40 @@ Phase A: the substrate the boardroom will run on.
 | **Security** | One untrusted-content boundary. Catches five injection families; clears a real governance policy. |
 | **Web** | Trilingual EN/HI/AR with RTL, two colour registers, the dissent-margin rail. |
 
-Phases B–E add the crew, the seven design-thinking stages, the memo and dissent log, the 3D
-round table, the outcome ledger, and the OWASP harness.
+Phase B: the crew.
+
+| | |
+|---|---|
+| **The room** | Five mandates as [readable prompt files](docs/crew.md), each declaring at least two blind spots it under-weights. The loader refuses a mandate that claims none. |
+| **Capability** | Declarative grants, and **no tool in COUNSEL has side effects** — asserted over the whole registry, not reviewed by eye. |
+| **Rounds** | Deterministic turn-taking in Python; the five seats speak concurrently against the previous round's transcript. A real 3-round debate on `qwen3:8b` takes **126.5 s** against a 240 s target. |
+| **The record** | Every turn signed into a hash chain. Editing turn 2 of 5 breaks 2, 3, 4 and 5. `/verify` re-reads the stored rows. |
+| **The Auditor** | Four mechanical rules. **5 of 5** real model turns caught fabricating a source. |
+
+Phases C–E add the seven design-thinking stages, the memo and dissent log, the 3D round table,
+the outcome ledger and the OWASP harness.
+
+## The finding that shaped Phase B
+
+Given no documents, all five mandates invented sources fluently — a Q3 footfall report, a
+Dubai Chamber statistic, a policy clause, a customer quote. None exist. Adding an explicit
+*"do not invent a report, a statistic or a citation"* to the prompt was
+[measured](docs/results/B7-prompting-does-not-stop-fabrication.json) and did not stop it.
+
+That is why every guarantee in COUNSEL is mechanical rather than prompted. A mandate told to
+cite will cite. Only a check that opens the citation knows whether it resolves.
 
 ## Documentation
 
 - [docs/datasets.md](docs/datasets.md) — every source, with licence, verification date and fallback
 - [docs/models.md](docs/models.md) — model choices and the spikes that decided them
+- [docs/crew.md](docs/crew.md) — the mandates, their blind spots, and the Auditor's measured limits
 - [docs/results/](docs/results/) — every measured number the docs cite
 - [docs/superpowers/plans/](docs/superpowers/plans/) — the master plan and the Phase A task plan
 
 ## Testing
 
 ```bash
-make check   # ruff, 105 pytest, contrast gate, placeholder scan, typecheck
+make check   # ruff, 231 pytest, contrast gate, placeholder scan, typecheck
 make e2e     # 8 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 ```
