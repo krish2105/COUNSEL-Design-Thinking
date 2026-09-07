@@ -155,11 +155,14 @@ export default function Security() {
                   the corpus, so quoting it accurately produces a citation that
                   genuinely resolves. */}
               <p className="passage">
-                <span className="arm">{t.security.step4Uncited}</span>
+                {/* .arm carries no trailing space — elsewhere it is followed by
+                    elements that bring their own. Here the next node is bare
+                    text, so the separator is explicit. */}
+                <span className="arm">{t.security.step4Uncited}</span>{" "}
                 {attack.citation_gate.uncited.why}
               </p>
               <p className="passage">
-                <span className="arm">{t.security.step4Cited}</span>
+                <span className="arm">{t.security.step4Cited}</span>{" "}
                 {attack.citation_gate.cited_to_itself.why}
               </p>
             </RailEntry>
