@@ -180,3 +180,40 @@ def test_the_scanner_endpoint_does_not_flag_governance_prose(client):
         headers=as_("viewer"),
     )
     assert r.json()["summary"]["n"] == 0
+
+
+def test_the_red_team_demonstration_reports_what_actually_happened(client):
+    """The Phase E harness, made watchable — and asserted, not narrated."""
+    sid = client.post(
+        "/sessions",
+        json={"question": "Should we pilot in a hypermarket or a plant first?", "stage": "Decide"},
+        headers=as_("analyst"),
+    ).json()["session_id"]
+
+    r = client.post("/security/redteam", json={"session_id": sid}, headers=as_("analyst"))
+    assert r.status_code == 200, r.text
+    body = r.json()
+
+    # Ingested, not refused: refusing would let an attacker delete evidence.
+    assert body["document"]["ingested"] is True
+    assert body["document"]["retrievable"] is True
+    assert body["document"]["n_chunks"] >= 1
+
+    # Detected.
+    assert body["detected"]["n_findings"] >= 4
+    assert "instruction-override" in body["detected"]["patterns"]
+
+    # And structurally unable to do what it asked for.
+    assert body["structural"]["publish_tools_in_registry"] == []
+    assert "publish_memo" not in body["structural"]["tools_that_exist"]
+    assert body["citation_gate"]["reached_the_memo"] is False
+
+
+def test_a_viewer_cannot_run_the_red_team_demonstration(client):
+    sid = client.post(
+        "/sessions",
+        json={"question": "Should we pilot in a hypermarket or a plant first?"},
+        headers=as_("analyst"),
+    ).json()["session_id"]
+    r = client.post("/security/redteam", json={"session_id": sid}, headers=as_("viewer"))
+    assert r.status_code == 403

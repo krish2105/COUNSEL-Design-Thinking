@@ -64,6 +64,7 @@ type Dict = {
     blindSpots: string; blindSpotsLede: string;
     chamber: string; replay: string; turn: string; of: string;
     fallbackNote: string; silent: string; speakingNow: string;
+    voiceOn: string; voiceOff: string;
   };
   documents: {
     title: string;
@@ -99,6 +100,9 @@ type Dict = {
     tryAttack: string;
     tryGovernance: string;
     fenced: string;
+    redteamTitle: string; redteamLede: string; redteamRun: string; redteamNoSession: string;
+    step1: string; step2: string; step3: string; step4: string;
+    ingested: string; detected: string; structural: string; refused: string; flagged: string;
   };
   theme: { light: string; dark: string };
 };
@@ -249,6 +253,8 @@ const en: Dict = {
     fallbackNote: "Drawn flat: this machine has no WebGL. Same seats, same edges, same numbers.",
     silent: "the chair",
     speakingNow: "is speaking",
+    voiceOn: "Give them voices",
+    voiceOff: "Silence the room",
   },
   documents: {
     title: "Documents",
@@ -284,6 +290,19 @@ const en: Dict = {
     tryAttack: "Try an attack",
     tryGovernance: "Try a real policy",
     fenced: "How the model would see it",
+    redteamTitle: "The attack, live",
+    redteamLede: "Poison a document into this session's corpus and watch what happens to it. A control nobody sees is a control nobody believes.",
+    redteamRun: "Run the attack",
+    redteamNoSession: "Open a room first — the attack needs a session to poison.",
+    step1: "The document is taken, not refused",
+    step2: "The scanner marks it",
+    step3: "The tool it asked for does not exist",
+    step4: "Its claim cannot reach the memo",
+    ingested: "ingested",
+    detected: "detected",
+    structural: "structural",
+    refused: "refused",
+    flagged: "flagged",
   },
   theme: { light: "Light", dark: "Dark" },
 };
@@ -434,6 +453,8 @@ const hi: Dict = {
     fallbackNote: "सपाट चित्र: इस मशीन में WebGL नहीं है। वही पक्ष, वही रेखाएँ, वही आँकड़े।",
     silent: "अध्यक्ष",
     speakingNow: "बोल रहे हैं",
+    voiceOn: "आवाज़ दें",
+    voiceOff: "कक्ष शांत करें",
   },
   documents: {
     title: "दस्तावेज़",
@@ -469,6 +490,19 @@ const hi: Dict = {
     tryAttack: "हमला आज़माएँ",
     tryGovernance: "वास्तविक नीति आज़माएँ",
     fenced: "मॉडल इसे कैसे देखेगा",
+    redteamTitle: "हमला, प्रत्यक्ष",
+    redteamLede: "इस सत्र के संग्रह में एक विषाक्त दस्तावेज़ डालें और देखें क्या होता है। जो नियंत्रण कोई देखता नहीं, उस पर कोई भरोसा नहीं करता।",
+    redteamRun: "हमला चलाएँ",
+    redteamNoSession: "पहले कक्ष खोलें — हमले को एक सत्र चाहिए।",
+    step1: "दस्तावेज़ लिया जाता है, अस्वीकार नहीं",
+    step2: "स्कैनर इसे चिह्नित करता है",
+    step3: "जो उपकरण माँगा गया वह अस्तित्व में ही नहीं",
+    step4: "इसका दावा ज्ञापन तक नहीं पहुँच सकता",
+    ingested: "ग्रहण किया",
+    detected: "पकड़ा गया",
+    structural: "संरचनात्मक",
+    refused: "अस्वीकृत",
+    flagged: "चिह्नित",
   },
   theme: { light: "उजला", dark: "गहरा" },
 };
@@ -619,6 +653,8 @@ const ar: Dict = {
     fallbackNote: "مرسومة مسطحة: لا يدعم هذا الجهاز WebGL. المقاعد نفسها والروابط نفسها والأرقام نفسها.",
     silent: "الرئيس",
     speakingNow: "يتحدث",
+    voiceOn: "امنحهم أصواتاً",
+    voiceOff: "أسكت القاعة",
   },
   documents: {
     title: "المستندات",
@@ -654,6 +690,19 @@ const ar: Dict = {
     tryAttack: "جرّب هجوماً",
     tryGovernance: "جرّب سياسة حقيقية",
     fenced: "كيف سيراه النموذج",
+    redteamTitle: "الهجوم، مباشرة",
+    redteamLede: "أدخل مستنداً مسموماً إلى مجموعة هذه الجلسة وشاهد ما يحدث له. الضابط الذي لا يراه أحد لا يثق به أحد.",
+    redteamRun: "شغّل الهجوم",
+    redteamNoSession: "افتح قاعة أولاً — يحتاج الهجوم إلى جلسة.",
+    step1: "يُقبل المستند ولا يُرفض",
+    step2: "يعلّمه الماسح",
+    step3: "الأداة التي طلبها غير موجودة أصلاً",
+    step4: "لا يمكن لادعائه بلوغ المذكرة",
+    ingested: "مُدخل",
+    detected: "مكتشف",
+    structural: "بنيوي",
+    refused: "مرفوض",
+    flagged: "مُعلَّم",
   },
   theme: { light: "فاتح", dark: "داكن" },
 };

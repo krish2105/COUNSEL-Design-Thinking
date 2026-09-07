@@ -74,3 +74,10 @@ test("the Report tab says COUNSEL sends the memo nowhere", async ({ page }) => {
   });
   await expect(page.getByRole("button", { name: /share|email|publish|send/i })).toHaveCount(0);
 });
+
+test("the red-team demonstration needs a session and says so", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.clear());
+  await page.goto("/security");
+  await page.getByRole("button", { name: "Run the attack" }).click();
+  await expect(page.locator(".erratum")).toContainText("Open a room first", { timeout: 15_000 });
+});

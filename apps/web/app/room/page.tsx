@@ -19,6 +19,7 @@ import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
 import { api, streamRound, type Frame, type Seat, type SessionState } from "@/lib/api";
 import { currentSession, setCurrentSession } from "@/lib/session";
+import { assignVoices, loadVoices, speak, speechAvailable, stopSpeaking, type VoiceMap } from "@/lib/voice";
 
 const STAGES = ["Empathise", "Define", "Ideate", "Prototype", "Test", "Decide", "Learn"];
 const DEMO = "Should RAQIB pilot in a Dubai hypermarket or a Greenlam plant first?";
@@ -46,6 +47,10 @@ export default function Room() {
   const [chair, setChair] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [chamber, setChamber] = useState<ChamberData | null>(null);
+  const [voices, setVoices] = useState<VoiceMap>({});
+  /* Off by default: a page that starts talking when you open it is a page
+   * people close. */
+  const [voiceOn, setVoiceOn] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -72,7 +77,14 @@ export default function Room() {
       })();
     }
 
-    return () => abort.current?.abort();
+    if (speechAvailable()) {
+      void loadVoices().then((v) => setVoices(assignVoices(v)));
+    }
+
+    return () => {
+      abort.current?.abort();
+      stopSpeaking();
+    };
   }, []);
 
   const open = useCallback(async () => {
@@ -109,6 +121,7 @@ export default function Room() {
           } else if (f.kind === "speaking") {
             setSpoken((p) => ({ ...p, [f.seat]: { seat: f.seat, text: f.text, signed: false } }));
           } else if (f.kind === "turn") {
+            if (voiceOn) speak(f.speaker as never, f.text, voices);
             setSpoken((p) => ({
               ...p,
               [f.speaker]: {
@@ -139,7 +152,7 @@ export default function Room() {
     } finally {
       setBusy(false);
     }
-  }, [session, t.room]);
+  }, [session, t.room, voiceOn, voices]);
 
   async function interject(e: React.FormEvent) {
     e.preventDefault();
@@ -160,7 +173,16 @@ export default function Room() {
   const ordered = seats.map((s) => spoken[s.id]).filter(Boolean) as Spoken[];
 
   return (
-    <div className="column">
+    <div
+      className="column"
+      /* The real voice assignment, exposed so a test can check the property
+       * that makes the feature worth having: the CFO sounds like the CFO in
+       * every session and every replay. A test that re-implemented the dealing
+       * rule would only be testing itself. */
+      data-voices={Object.entries(voices)
+        .map(([seat, v]) => `${seat}:${v?.name ?? ""}`)
+        .join(",")}
+    >
       <h1 className="page-title">{t.room.title}</h1>
       <p className="lede">{t.room.lede}</p>
 
@@ -215,6 +237,19 @@ export default function Room() {
             {busy ? (
               <button type="button" className="ghost" onClick={() => abort.current?.abort()}>
                 {t.room.stop}
+              </button>
+            ) : null}
+            {speechAvailable() ? (
+              <button
+                type="button"
+                className="ghost"
+                aria-pressed={voiceOn}
+                onClick={() => {
+                  if (voiceOn) stopSpeaking();
+                  setVoiceOn(!voiceOn);
+                }}
+              >
+                {voiceOn ? t.room.voiceOff : t.room.voiceOn}
               </button>
             ) : null}
           </div>
