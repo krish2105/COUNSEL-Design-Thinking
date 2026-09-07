@@ -16,8 +16,12 @@ export function Masthead() {
 
   const tabs = [
     { href: "/room", label: t.nav.room },
+    { href: "/stages", label: t.nav.stages },
+    { href: "/board", label: t.nav.board },
     { href: "/decide", label: t.nav.decide },
+    { href: "/report", label: t.nav.report },
     { href: "/ledger", label: t.nav.ledger },
+    { href: "/crew", label: t.nav.crew },
     { href: "/", label: t.nav.documents },
     { href: "/ask", label: t.nav.ask },
     { href: "/security", label: t.nav.security },

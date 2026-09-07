@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
+import { Scrollable } from "@/components/Scrollable";
 import {
   api,
   streamScores,
@@ -171,7 +172,7 @@ export default function Decide() {
       {ranked ? (
         <section className="fenced">
           <h2 className="entry-title">{t.decide.ranking}</h2>
-          <div className="scrollable">
+          <Scrollable label={t.decide.ranking}>
             <table className="ranking">
               <thead>
                 <tr>
@@ -192,7 +193,7 @@ export default function Decide() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Scrollable>
         </section>
       ) : null}
 

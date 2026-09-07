@@ -21,7 +21,7 @@ from services.api.crew import ledger as ledger_mod
 from services.api.crew import store
 from services.api.crew.counterfactual import flips, robustness, sensitivity
 from services.api.crew.memo import attach_dissents, build_memo, render_markdown
-from services.api.crew.session import Stage
+from services.api.crew.session import STAGE_RULES, Stage
 from services.api.crew.stages import (
     Evidence,
     aggregate,
@@ -113,6 +113,26 @@ def _stored_scores(session_id: str) -> dict[str, list[Score]]:
     if not payload:
         raise HTTPException(409, "the room has not scored the options yet — run /scores first")
     return {seat: [Score(**s) for s in items] for seat, items in payload.items()}
+
+
+@router.get("/artefacts", dependencies=[Depends(require(Scope.READ))])
+def artefacts(session_id: str) -> dict[str, object]:
+    """Everything the room has produced, by stage.
+
+    Read-only and keyed by kind, so the Board and Stages tabs render what
+    actually happened rather than re-running anything to find out.
+    """
+    _session(session_id)
+    conn = deps.db()
+    return {
+        "session_id": session_id,
+        "artefacts": {
+            kind: store.load_artefacts(session_id, kind, conn=conn)
+            for kind in ("framing", "idea", "score", "dissent")
+        },
+        "evidence": [e.__dict__ for e in store.load_evidence(session_id, conn=conn)],
+        "stage_rules": {str(stage): list(rules) for stage, rules in STAGE_RULES.items()},
+    }
 
 
 @router.post("/scores/stream", dependencies=[Depends(require(Scope.SESSION_WRITE))])

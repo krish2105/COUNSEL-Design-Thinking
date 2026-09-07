@@ -172,7 +172,7 @@ export type Counterfactual = {
 };
 export type MemoResult = {
   markdown: string; recommendation: string; n_cited: number; n_uncited: number;
-  ungrounded: boolean; margin: number;
+  ungrounded: boolean; unanimous_dissent: boolean; margin: number;
   dissents: { seat: string; title: string; position: string; would_change_my_mind: string }[];
 };
 export type Calibration = {
@@ -230,6 +230,16 @@ export const api = {
     call<import("@/components/chamber/Chamber").ChamberData>(
       `/sessions/${id}/chamber`, {}, "viewer",
     ),
+  framings: (id: string) =>
+    call<{ framings: Record<string, unknown> }>(`/sessions/${id}/framings`, { method: "POST" }),
+  ideas: (id: string) =>
+    call<{ ideas: Record<string, unknown> }>(`/sessions/${id}/ideas`, { method: "POST" }),
+  artefacts: (id: string) =>
+    call<{
+      artefacts: Record<string, Record<string, unknown> | null>;
+      evidence: { evidence_id: string; summary: string; source: string }[];
+      stage_rules: Record<string, string[]>;
+    }>(`/sessions/${id}/artefacts`, {}, "viewer"),
   verify: (id: string) =>
     call<{ intact: boolean; broken_turns: string[]; n_turns: number }>(`/sessions/${id}/verify`, {}, "viewer"),
   health: () => call<Record<string, unknown>>("/healthz", {}, "viewer"),
