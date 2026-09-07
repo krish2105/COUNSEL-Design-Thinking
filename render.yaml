@@ -39,8 +39,12 @@ services:
       # tampering does. Set it once in the dashboard; never commit it.
       - key: COUNSEL_TRANSCRIPT_KEY
         generateValue: true
-      # Ollama does not exist here, so the embedder chain resolves to Gemini,
-      # and to the in-process ONNX model if that key is absent or exhausted.
+      # Ollama does not exist here, so the embedder chain resolves to Gemini.
+      # It does NOT fall through to the in-process ONNX model: that was the
+      # plan, and a 512 MB free instance cannot load it — the process is killed
+      # and the request 502s. COUNSEL_DISABLE_FASTEMBED below stops it trying.
+      # Without a Gemini key this service runs with no embedder at all, which
+      # is a supported state: search becomes lexical only and /healthz says so.
       - key: OLLAMA_HOST
         value: http://127.0.0.1:1
       - key: GEMINI_API_KEY
@@ -54,6 +58,14 @@ services:
       - key: CORS_ORIGINS
         sync: false            # the Vercel URL, once it exists
       # Requests, not tokens. See services/api/core/quota.py.
+      # Declared here, not just in the dashboard. `plan: free` above is 512 MB,
+      # and the 384-dim MiniLM ONNX session does not fit: the process is killed
+      # and the request 502s in about 13 seconds, with no application log to
+      # explain it. Leaving this to a dashboard step means a fresh clone of this
+      # blueprint deploys and then breaks on its first upload.
+      # On an instance with more memory, delete this and fastembed works.
+      - key: COUNSEL_DISABLE_FASTEMBED
+        value: "1"
       - key: QUOTA_GEMINI_REQUESTS
         value: "200"
       - key: QUOTA_GROQ_REQUESTS
