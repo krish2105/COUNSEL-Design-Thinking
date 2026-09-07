@@ -146,12 +146,16 @@ Phase E: the harness and the artefacts.
 
 ## Score
 
-**90 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
+**88 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
 
-It is deployed, and deployment scores 11/15 rather than the 14 this scorecard
-predicted. Deploying subtracted capability as well as adding availability: the
-embedding model does not fit a 512 MB free instance, so the live instance
-searches lexically and cannot match across languages. Two API keys recover it.
+It went down, not up, after deploying taught two lessons. Deployment scores 11/15
+rather than the 14 predicted, because the embedding model does not fit a 512 MB
+free instance — the live instance searches lexically and cannot match across
+languages. And testing lost two marks for the reason worth reading: every test
+built its provider chain with a task-aware stub while the running service built a
+bare one, so 403 tests stayed green over a deployment where **every framing,
+score and memo returned 500**. Both are fixed and both are now pinned by tests
+that fail against the shipped code.
 
 ## Two things a real run changed
 

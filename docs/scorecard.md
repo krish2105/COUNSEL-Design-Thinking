@@ -1,6 +1,6 @@
 # COUNSEL, scored as a real MVP
 
-**Total: 90 / 100.**
+**Total: 88 / 100.**
 
 The rubric is below, the evidence for each mark is named, and every deduction
 says what would recover it. This is scored as a *deployed product a stranger
@@ -15,15 +15,15 @@ part of being honest about the number.
 |---|---|---:|---:|---|
 | 1 | Does it work end to end? | 15 | **14** | |
 | 2 | Engineering quality | 15 | **14** | |
-| 3 | Testing and verification | 15 | **15** | |
+| 3 | Testing and verification | 15 | **13** | |
 | 4 | Honesty and calibration | 10 | **10** | |
 | 5 | Security posture | 10 | **9** | |
 | 6 | Design and interface | 10 | **8** | |
 | 7 | Documentation | 10 | **9** | |
 | 8 | **Deployment and operability** | 15 | **11** | |
 | 9 | Course fit (MGT 204) | 10 | **9** | |
-| | Subtotal (out of 110) | | **99** | |
-| | *Normalised to 100* | | **90** | |
+| | Subtotal (out of 110) | | **97** | |
+| | *Normalised to 100* | | **88** | |
 
 ---
 
@@ -53,11 +53,12 @@ weakest of the four; it is shipped with its weakness recorded in a comment rathe
 than fixed. `deps.py` uses module-level `lru_cache` singletons, which is fine for
 one operator and would need rethinking for concurrent users.
 
-## 3 · Testing and verification — 15/15
+## 3 · Testing and verification — 13/15
 
-**Evidence.** 395 Python tests and 104 Playwright tests across desktop and
-mobile. The whole suite runs with **no model, no key and no network** — verified
-by pointing Ollama at a dead host: 107 passed, 1 skipped, exit 0.
+**Evidence.** 414 Python tests and 104 Playwright tests across desktop and
+mobile, plus a live suite that drives the deployed URL over the public internet.
+The whole local suite runs with **no model, no key and no network** — verified
+by pointing Ollama at a dead host: exit 0.
 
 More important than the count: the tests found things. A `\w+` tokenizer silently
 dropping Devanagari vowel signs. A shared SQLite connection that crashed every
@@ -67,6 +68,31 @@ process, making every restart look like tampering. An ONNX teardown crash
 aborting `make check` *after* all tests passed. Each is pinned by a regression
 test that fails without the fix — the RRF one was verified by restoring the bug
 and watching the test go red.
+
+**Why not 15.** Two marks, for the same root cause: **the suite tested a better
+machine than the one the product runs on.**
+
+Every test built its provider chain with `phase_c_stub()`. `deps.llm()` — the
+chain the service actually builds — terminated with a bare `StubProvider()`,
+which cannot answer `structured()` at all. With no provider keys the deployed
+service runs entirely on that terminal stub, so **every framing, idea, score and
+memo on the live site returned 500** while the Room worked, because a debate turn
+is `complete()` and a framing is `structured()`. Roughly half the deployed
+application was dead, and 403 tests were green the whole time. It was found by a
+person opening the Board tab, which is the worst way to find anything.
+
+The second mark is the same lesson in a different place: no Python test drove
+`/scores/stream` or `/memo/stream` at all. `POST /memo` takes ~41 seconds and
+returned 500 at exactly 30 through the Next rewrite, so the Report tab's one
+button was broken in the product while the endpoint it called was healthy.
+
+Both are now pinned. `tests/invariants/test_production_chain.py` exercises
+`deps.llm()` itself with no keys and no Ollama — the deployed configuration —
+and 10 of its 11 tests fail against the shipped code. The streaming invariant
+fails if a multi-seat endpoint gains no `/stream` sibling, and its own first
+version was a tautology that passed against a deleted route, so it is asserted
+red in both directions. The marks come back when that discipline has survived a
+few more changes, not merely because the tests exist.
 
 ## 4 · Honesty and calibration — 10/10
 
