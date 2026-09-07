@@ -230,6 +230,11 @@ def test_every_slow_write_has_a_streaming_sibling():
         "/sessions/{session_id}/scores",  # five seats x two options, ~103s measured
         "/sessions/{session_id}/memo",  # draft + five dissents, ~41s measured
     }
+    # /framings and /ideas are the same five-seat fan-out shape and are NOT in
+    # that set, because measured on qwen3:8b they are 21.7s and 19.4s — under
+    # the ceiling, but not by much. A slower host or a larger model puts them
+    # over it, and the failure would look exactly like the memo's did. Recorded
+    # here rather than left as an assumption someone has to rediscover.
     # Asserted to EXIST before being checked, so renaming one cannot quietly
     # turn this back into a tautology.
     assert slow <= paths, f"these endpoints moved; update this list: {sorted(slow - paths)}"

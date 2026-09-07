@@ -12,7 +12,6 @@ from services.api.core.llm import (
     GroqProvider,
     LLMChain,
     OllamaProvider,
-    StubProvider,
 )
 from services.api.core.quota import Quota
 from services.api.core.search import (
@@ -23,6 +22,7 @@ from services.api.core.search import (
     UserLinksProvider,
 )
 from services.api.core.settings import settings
+from services.api.crew.stubs import phase_c_stub
 from services.api.rag.embed import Embedder, get_embedder
 
 
@@ -52,13 +52,31 @@ def quota() -> Quota:
 
 @lru_cache
 def llm() -> LLMChain:
+    """The provider chain the running service uses.
+
+    The terminal stub is phase_c_stub(), NOT a bare StubProvider(). A bare stub
+    answers complete() with prose and cannot answer structured() at all, so the
+    chain raised
+
+        LLMError: no provider returned a valid Framing after 2 attempts:
+        ['stub: ValueError', 'stub: ValueError']
+
+    for every structured stage. That is not a corner case: with no provider keys
+    set the deployed service runs ENTIRELY on the stub, so Board, Decide and
+    Report were all 500s while the Room worked, because a debate turn is
+    complete() and a framing is structured().
+
+    Every test built its chain with phase_c_stub() and every one of them passed.
+    The substrate under test was not the substrate in production — the same
+    shape of mistake as assuming Render's Python could load SQLite extensions.
+    """
     return LLMChain(
         [
             OllamaProvider(),
             GeminiProvider(),
             GroqProvider(),
             AnthropicProvider(),
-            StubProvider(),
+            phase_c_stub(),
         ],
         quota(),
     )

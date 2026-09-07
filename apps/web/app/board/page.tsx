@@ -104,6 +104,14 @@ export default function Board() {
         </section>
       ) : null}
 
+      {/* Say what the state IS. An empty Board rendered nothing at all below the
+          two buttons, which on a wide screen is a page-height of blank — it reads
+          as broken rather than as "the room has not been asked yet". Every other
+          surface here declares its own emptiness; this one did not. */}
+      {!error && Object.keys(framings).length === 0 && Object.keys(ideas).length === 0 ? (
+        <p className="method">{t.board.empty}</p>
+      ) : null}
+
       {Object.keys(ideas).length > 0 ? (
         <section className="fenced">
           <h2 className="entry-title">{t.board.ideas}</h2>

@@ -31,7 +31,7 @@ type Dict = {
   board: {
     title: string; lede: string; runFramings: string; runIdeas: string; working: string;
     framings: string; framingsLede: string; ideas: string; ideasLede: string;
-    whose: string; buildsOn: string;
+    whose: string; buildsOn: string; empty: string;
   };
   report: {
     title: string; lede: string; question: string; rounds: string; record: string;
@@ -148,6 +148,7 @@ const en: Dict = {
     ideasLede: "Ideate, under the no-critique rule. Build on other seats rather than replacing them.",
     whose: "whose problem:",
     buildsOn: "builds on",
+    empty: "Nothing on the board yet. Ask for framings to open Define, or for ideas to open Ideate — five seats answer at once, which takes about twenty seconds.",
   },
   report: {
     title: "Report",
@@ -348,6 +349,7 @@ const hi: Dict = {
     ideasLede: "विचलन, बिना आलोचना के नियम के अंतर्गत। दूसरों की जगह लेने के बजाय उन पर निर्माण करें।",
     whose: "किसकी समस्या:",
     buildsOn: "आधारित",
+    empty: "पटल अभी खाली है। परिभाषा चरण के लिए रूपरेखाएँ माँगें, या विचलन के लिए विचार — पाँचों पक्ष एक साथ उत्तर देते हैं, जिसमें लगभग बीस सेकंड लगते हैं।",
   },
   report: {
     title: "रिपोर्ट",
@@ -548,6 +550,7 @@ const ar: Dict = {
     ideasLede: "التفكير التباعدي، تحت قاعدة عدم النقد. ابنِ على أفكار الآخرين بدل استبدالها.",
     whose: "مشكلة من:",
     buildsOn: "يبني على",
+    empty: "اللوحة فارغة حتى الآن. اطلب صياغات لبدء مرحلة التعريف، أو أفكاراً لبدء مرحلة التفكير — تجيب المقاعد الخمسة معاً، ويستغرق ذلك نحو عشرين ثانية.",
   },
   report: {
     title: "التقرير",
