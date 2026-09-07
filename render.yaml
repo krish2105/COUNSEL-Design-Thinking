@@ -34,6 +34,11 @@ services:
       # Ephemeral, and named so it is obvious in a shell that this is not durable.
       - key: COUNSEL_DB
         value: /tmp/counsel-ephemeral.db
+      # Without this the signing key is regenerated on every deploy, and every
+      # transcript written before it fails verification — in exactly the way
+      # tampering does. Set it once in the dashboard; never commit it.
+      - key: COUNSEL_TRANSCRIPT_KEY
+        generateValue: true
       # Ollama does not exist here, so the embedder chain resolves to Gemini,
       # and to the in-process ONNX model if that key is absent or exhausted.
       - key: OLLAMA_HOST

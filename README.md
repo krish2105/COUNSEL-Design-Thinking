@@ -18,12 +18,16 @@ Built for SP Jain MAIB Term 4, MGT 204 Design Thinking. Owner: Krishna Mathur.
 
 ## Live
 
-Not yet deployed. Phase A's last task is the first deploy — Vercel for the web app, Render for
-the API, SQLite on a Render disk — and this section will then carry both URLs and the commit sha
-behind them.
+**Not deployed.** This is the honest state and the largest gap in the project — see
+[docs/scorecard.md](docs/scorecard.md), where it costs 14 of 100 marks.
 
-Running locally right now: web on `:3000`, API on `:8000`, inference on local Ollama
-(`qwen3:8b`), embeddings on `bge-m3:567m`.
+Everything needed is written and parses: `render.yaml`, `apps/web/vercel.json`, a CI
+workflow, and step-by-step instructions in [docs/deploy.md](docs/deploy.md). It needs
+free Gemini and Groq keys plus GitHub, Render and Vercel accounts — about thirty
+minutes, zero cost.
+
+Running locally: web on `:3000`, API on `:8000`, inference on local Ollama (`qwen3:8b`),
+embeddings on `bge-m3:567m`.
 
 ## Running it
 
@@ -78,7 +82,20 @@ Phase D: the chamber and the rest of the room.
 | **Voice** | A deterministic offline voice per mandate. Off by default. |
 | **Red team, live** | Poison a document into the running session and watch the four defences answer it. |
 
-Phase E adds the OWASP harness and the Term 4 artefacts.
+Phase E: the harness and the artefacts.
+
+| | |
+|---|---|
+| **OWASP LLM Top 10** | 22 assertions, 8 risks covered, 0 gaps, 2 declared not applicable with reasons. The scorecard is **generated from the test names** — verified by renaming a control's tests away and watching the row flip to GAP. |
+| **The two named attacks** | A poisoned document does not change the memo's recommendation; a turn signed with the wrong key breaks the chain. |
+| **Term 4 artefacts** | Report (docx + md), deck outline, 15 viva questions, 3-minute demo script — every figure read from `docs/results/` at build time. Delete a results file and the build fails. |
+
+## Score
+
+**78 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
+The single largest deduction is that it is **not deployed**: 1/15 on
+deployment and operability. Deploying takes about thirty minutes
+([docs/deploy.md](docs/deploy.md)) and would take it to **92**.
 
 ## Two things a real run changed
 
@@ -112,12 +129,16 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 - [docs/crew.md](docs/crew.md) — the mandates, their blind spots, and the Auditor's measured limits
 - [docs/decisions.md](docs/decisions.md) — the stages, what the memo guarantees, and what it does not
 - [docs/chamber.md](docs/chamber.md) — what the 3D view shows, and where a picture like it could mislead
+- [docs/deploy.md](docs/deploy.md) — how to put it on the internet, and what the free tier will and will not do
+- [docs/scorecard.md](docs/scorecard.md) — this project scored out of 100, with the evidence for every mark
+- [docs/artefacts/](docs/artefacts/) — the Term 4 report, deck, viva sheet and demo script
 - [docs/results/](docs/results/) — every measured number the docs cite
 - [docs/superpowers/plans/](docs/superpowers/plans/) — the master plan and the Phase A task plan
 
 ## Testing
 
 ```bash
-make check   # ruff, 319 pytest, contrast gate, placeholder scan, typecheck
-make e2e     # 94 Playwright tests on desktop and mobile (needs `make api` and `make web`)
+make check   # ruff, 395 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
+make e2e     # 104 Playwright tests on desktop and mobile (needs `make api` and `make web`)
+make artefacts # rebuild the report, deck, viva and demo from docs/results/
 ```
