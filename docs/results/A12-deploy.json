@@ -1,0 +1,81 @@
+{
+  "measurement": "The deployed system, verified over the public internet",
+  "date": "2026-09-07",
+  "commit": "ef85442239fb634daefb6aedaf46cddedc21a317",
+  "urls": {
+    "web": "https://counsel-gray.vercel.app",
+    "api": "https://counsel-api-ileh.onrender.com",
+    "health": "https://counsel-api-ileh.onrender.com/healthz"
+  },
+  "hosting": {
+    "web": "Vercel, project counsel, free plan",
+    "api": "Render, service counsel-api, free plan, Singapore",
+    "storage": "SQLite at /tmp/counsel-ephemeral.db — EPHEMERAL, lost on restart",
+    "public": "Vercel Authentication disabled so the URL opens without a login"
+  },
+  "web_routes": {
+    "checked": 10,
+    "http_200": 10,
+    "slowest_seconds": 0.57,
+    "routes": ["/", "/ask", "/board", "/crew", "/decide", "/ledger", "/report", "/room", "/security", "/stages"]
+  },
+  "api_latency_warm_seconds": {
+    "healthz": [1.356, 1.274, 1.071],
+    "sessions_seats": [0.181, 0.147, 0.175]
+  },
+  "cold_start": {
+    "measured": false,
+    "why": "The instance was warm throughout this measurement round. Render's free plan spins a service down after 15 minutes idle; the first request after that wakes it and is slow. Recording the vendor behaviour rather than a number this run did not observe.",
+    "observed_qualitatively": "The first request after the initial deploy took roughly a minute."
+  },
+  "browser_smoke": {
+    "command": "npm run smoke:live",
+    "suite": "apps/web/e2e-live/live.spec.ts",
+    "tests": 3,
+    "passed": 3,
+    "asserts": [
+      "the crew capability table is populated by the live API and every row reads side effects: none",
+      "the untrusted-content scanner runs live and clears a legitimate policy document",
+      "the 3D chamber renders and is handed five DISTINCT hex seat colours, not the grey fallback"
+    ]
+  },
+  "safety_verified_live": {
+    "rbac_viewer_post_sessions": 403,
+    "red_team_findings_detected": 6,
+    "red_team_patterns": ["fence-escape", "instruction-override", "prompt-exfiltration", "role-reassignment", "tool-invocation"],
+    "injected_claim_reached_memo": false,
+    "publish_tools_in_registry": [],
+    "paid_inference": false,
+    "anthropic_available_with_or_without_key": false
+  },
+  "degraded_in_production": {
+    "embedder": {
+      "active": null,
+      "why": "The 384-dim MiniLM ONNX model does not fit Render's 512 MB free instance — the process was killed and the request 502'd in 13s. COUNSEL_DISABLE_FASTEMBED=1 makes no-embedder a supported state rather than a crash.",
+      "consequence": "Search on the deployed instance is LEXICAL ONLY. The cross-lingual retrieval result in A7-fusion-crosslingual.json does not hold on this instance.",
+      "recovery": "Set GEMINI_API_KEY on the Render service; the embedder chain then resolves to gemini-embedding-001 (768-dim)."
+    },
+    "inference": {
+      "active": "stub",
+      "why": "No GEMINI_API_KEY or GROQ_API_KEY is set. Keys were deliberately not handled during deployment.",
+      "consequence": "Debate turns are deterministic stub output derived from a sha256 of the input, not model output.",
+      "recovery": "Set GEMINI_API_KEY and GROQ_API_KEY on the Render service."
+    },
+    "sqlite_vec": {
+      "why": "Render's Python is built without --enable-loadable-sqlite-extensions, so conn.enable_load_extension does not exist and sqlite-vec can never load. Found by deploying — every local Python has the flag, so the suite was green and the first live request was a 500.",
+      "consequence": "None to correctness. Vector search falls back to a brute-force cosine scan in numpy; a test asserts the two produce identical ranking.",
+      "recovery": "Not needed at this corpus size."
+    },
+    "storage": {
+      "why": "The free plan has no persistent disk.",
+      "consequence": "Uploaded documents and transcripts are lost when the instance restarts.",
+      "recovery": "A Render disk, which is a paid plan."
+    }
+  },
+  "health_payload_is_honest": {
+    "claim": "The deployed /healthz names every degradation rather than reporting OK.",
+    "embedder_note": "No embedding model fits this environment. Search is lexical only and cannot match across languages. Set GEMINI_API_KEY to restore it.",
+    "active_provider": "stub",
+    "paid_inference": false
+  }
+}

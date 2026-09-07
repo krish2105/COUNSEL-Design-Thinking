@@ -56,7 +56,21 @@ verification in exactly the way tampering does.
   uploaded documents and sessions reset on each deploy and each spin-down. That
   is fine through Phase D; the outcome ledger is what will eventually need
   durable storage.
-- **Embeddings run in-process** via fastembed, because Ollama is not there.
+- **Embeddings do not run at all on the free plan.** This was the plan — Ollama
+  is not there, so fastembed would carry it in-process — and it is wrong. The
+  384-dim MiniLM ONNX model does not fit 512 MB: the process is killed and the
+  request 502s in about 13 seconds. `COUNSEL_DISABLE_FASTEMBED=1` is set on the
+  live service, which makes *no embedder* a supported state instead of a crash.
+  The cost is real: **search becomes lexical only and cannot match across
+  languages.** Setting `GEMINI_API_KEY` resolves the embedder chain to
+  `gemini-embedding-001` and restores it.
+- **`sqlite-vec` cannot load on Render at all.** Their Python is built without
+  `--enable-loadable-sqlite-extensions`, so `conn.enable_load_extension` does
+  not exist. Vector search falls back to a brute-force cosine scan in numpy; a
+  test asserts the two rank identically, so this costs nothing but speed at this
+  corpus size. Nothing to configure — it is detected per connection.
+- **Set `COUNSEL_DB` to a writable path.** `/tmp/counsel-ephemeral.db` on the
+  free plan. The default assumes a disk that is not there.
 
 ## 4. Vercel — the web app
 
@@ -80,13 +94,31 @@ provider, and the embedder. Then open the Vercel URL and check:
 
 1. `/crew` renders — needs no model, so it proves the deploy before anything slow.
 2. `/security` → **Run the attack** — proves the boundary end to end.
-3. `/room` → **Open the room** → **Run a round** — proves inference.
+3. `/room` → **Open the room** → **Run a round** — proves inference. With no
+   provider keys set this returns deterministic stub text, which proves the
+   path but not the model.
+
+Or drive all of it in a real browser against the live URL:
+
+```bash
+cd apps/web && npm run smoke:live      # or COUNSEL_LIVE_URL=... npm run smoke:live
+```
+
+That suite lives in `apps/web/e2e-live/`, deliberately outside `e2e/` so that
+`make check` stays hermetic. It asserts on the *rows the live API returns*, not
+on the heading above them — the first version of it asserted on the heading and
+passed against a backend that was answering 404.
 
 ## 6. Update the README
 
 Put both URLs and the deployed commit sha in the **Live** section, and record the
 `/healthz` payload in `docs/results/A12-deploy.json` so the deployment is
 traceable like every other claim in this project.
+
+**Done, 2026-09-07.** Live at <https://counsel-gray.vercel.app> with the API at
+<https://counsel-api-ileh.onrender.com>; measurements in
+[`docs/results/A12-deploy.json`](results/A12-deploy.json) and the revised
+deployment score in [`docs/scorecard.md`](scorecard.md).
 
 ---
 

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "contrast": "node scripts/check-contrast.mjs",
     "lint": "npm run typecheck && npm run contrast",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "smoke:live": "playwright test --config=playwright.live.config.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

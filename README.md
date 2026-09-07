@@ -26,11 +26,30 @@ Built for SP Jain MAIB Term 4, MGT 204 Design Thinking. Owner: Krishna Mathur.
 | API | https://counsel-api-ileh.onrender.com/healthz — Render, free, Singapore |
 | Repo | `krish2105/COUNSEL-Design-Thinking` |
 
-**Two things to expect.** The API sleeps after 15 minutes idle on Render's free
-tier, so the first request takes about a minute — [/crew](https://counsel-gray.vercel.app/crew)
-and the capability table need no model at all and are the fastest thing to load.
-And storage is ephemeral: uploads and sessions reset on each deploy, because a
-free Render service cannot attach a persistent disk.
+**What the live instance can and cannot do.** It is the real system — the
+capability table, the citation gate, RBAC and the red-team page all run on the
+deployed host, and `npm run smoke:live` proves it in a browser over the public
+internet. Four things are worth knowing before you click:
+
+- **It sleeps.** Render's free tier spins down after 15 minutes idle, so the
+  first request takes about a minute. [/crew](https://counsel-gray.vercel.app/crew)
+  needs no model and is the fastest thing to load.
+- **Search is lexical only.** The 384-dim embedding model does not fit a 512 MB
+  instance, so the deployed instance runs with **no embedder** and cannot match
+  across languages. The cross-lingual result in
+  [`A7-fusion-crosslingual.json`](docs/results/A7-fusion-crosslingual.json)
+  reproduces locally and *does not hold here*. A `GEMINI_API_KEY` restores it.
+- **Debate turns are the deterministic stub.** No provider keys are set, so
+  turns are sha256-derived placeholder text rather than model output. Two keys
+  on the Render service change that.
+- **Storage is ephemeral.** Uploads and sessions reset on restart; a free Render
+  service cannot attach a persistent disk.
+
+None of this is inferred from the config —
+[`/healthz`](https://counsel-api-ileh.onrender.com/healthz) reports
+`active_provider: stub` and `embedder.active: null` and says in plain words
+which claim it cannot currently keep. Measurements in
+[`docs/results/A12-deploy.json`](docs/results/A12-deploy.json).
 
 Running locally instead: web on `:3000`, API on `:8000`, inference on local Ollama
 (`qwen3:8b`), embeddings on `bge-m3:567m` — which is faster and keeps everything
@@ -99,10 +118,12 @@ Phase E: the harness and the artefacts.
 
 ## Score
 
-**78 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
-The single largest deduction is that it is **not deployed**: 1/15 on
-deployment and operability. Deploying takes about thirty minutes
-([docs/deploy.md](docs/deploy.md)) and would take it to **92**.
+**90 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
+
+It is deployed, and deployment scores 11/15 rather than the 14 this scorecard
+predicted. Deploying subtracted capability as well as adding availability: the
+embedding model does not fit a 512 MB free instance, so the live instance
+searches lexically and cannot match across languages. Two API keys recover it.
 
 ## Two things a real run changed
 
@@ -148,4 +169,6 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 make check   # ruff, 395 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
 make e2e     # 104 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 make artefacts # rebuild the report, deck, viva and demo from docs/results/
+
+cd apps/web && npm run smoke:live   # drive the DEPLOYED system in a browser
 ```
