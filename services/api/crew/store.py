@@ -16,7 +16,7 @@ from sqlite3 import Connection
 from services.api.core.db import WRITE_LOCK
 from services.api.crew.auditor import Flag
 from services.api.crew.session import Session, Stage
-from services.api.crew.transcript import Transcript, Turn
+from services.api.crew.transcript import Transcript, Turn, session_key
 from services.api.rag.citations import Citation
 
 
@@ -89,6 +89,7 @@ def load_session(session_id: str, *, conn: Connection) -> Session | None:
         question=row["question"],
         stage=Stage(row["stage"]),
         round_no=row["round_no"],
+        signing_key=session_key(conn),
     )
     session.closed = bool(row["closed"])
     session.ended_early = row["ended_early"]
@@ -97,7 +98,7 @@ def load_session(session_id: str, *, conn: Connection) -> Session | None:
 
 
 def load_transcript(session_id: str, *, conn: Connection) -> Transcript:
-    transcript = Transcript(session_id=session_id)
+    transcript = Transcript(session_id=session_id, key=session_key(conn))
     rows = conn.execute(
         "SELECT * FROM turns WHERE session_id = ? ORDER BY ordinal", (session_id,)
     ).fetchall()

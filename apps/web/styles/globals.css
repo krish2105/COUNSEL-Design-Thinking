@@ -534,3 +534,76 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
 
 .scanner + .scanner, .scanner + .fenced { margin-top: 2.5rem; }
 .scanner h2 + .lede { margin-bottom: 1rem; }
+
+/* ── the chamber ────────────────────────────────────────────────────────── */
+
+/* THE ONE LOUD MOMENT. Everything else in COUNSEL is a quiet document surface;
+   this is a lit table in a dark room, and it keeps its own ground in BOTH
+   colour registers because a room does not invert when you change your reading
+   light. It is the only place the app stops looking like paper. */
+.chamber {
+  max-width: var(--measure);
+  margin: 0 0 2.5rem;
+}
+
+.chamber-stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-height: 26rem;
+  background: var(--chamber-ground);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.chamber-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.chamber-loading { width: 100%; height: 100%; background: var(--chamber-ground); }
+
+.table-svg { width: 100%; height: 100%; display: block; }
+.table-ring { fill: none; stroke: oklch(0.32 0.014 265); stroke-width: 0.7; }
+.table-inner { fill: oklch(0.145 0.012 265); stroke: none; }
+.table-edges polyline {
+  fill: none;
+  stroke: oklch(0.55 0.02 265);
+  stroke-width: 0.55;
+  opacity: 0.65;
+}
+.seat-halo { fill: var(--chamber-text); }
+.seat-mark { fill: oklch(0.30 0.014 265); stroke: oklch(0.52 0.018 265); stroke-width: 0.5; }
+.seat-mark[data-speaking] { fill: var(--chamber-text); stroke: var(--chamber-text); }
+.seat-label {
+  font-family: var(--font-mono);
+  font-size: 3px;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  fill: var(--chamber-text);
+  opacity: 0.75;
+}
+[data-seat="cfo"] .seat-halo, [data-seat="cfo"] .seat-mark[data-speaking] { fill: var(--seat-cfo); }
+[data-seat="cmo"] .seat-halo, [data-seat="cmo"] .seat-mark[data-speaking] { fill: var(--seat-cmo); }
+[data-seat="coo"] .seat-halo, [data-seat="coo"] .seat-mark[data-speaking] { fill: var(--seat-coo); }
+[data-seat="ethics"] .seat-halo, [data-seat="ethics"] .seat-mark[data-speaking] { fill: var(--seat-ethics); }
+[data-seat="devil"] .seat-halo, [data-seat="devil"] .seat-mark[data-speaking] { fill: var(--seat-devil); }
+[data-seat] .seat-mark[data-speaking] + .seat-label { fill: var(--chamber-ground); opacity: 1; }
+
+/* A diagram looks like data. This caption says what the picture is NOT, and it
+   sits under the picture because that is the only place it will be read. */
+.chamber-caption {
+  margin: 0.7rem 0 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.replay { margin-top: 1.25rem; }
+.replay-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.replay input[type="range"] { width: 100%; accent-color: var(--text); cursor: pointer; }
+.replay .citation { margin: 0.5rem 0 0.4rem; }
+.replay .passage { color: var(--text-muted); font-size: var(--step--1); }

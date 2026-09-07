@@ -14,10 +14,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Chamber, type ChamberData } from "@/components/chamber/Chamber";
 import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
 import { api, streamRound, type Frame, type Seat, type SessionState } from "@/lib/api";
-import { setCurrentSession } from "@/lib/session";
+import { currentSession, setCurrentSession } from "@/lib/session";
 
 const STAGES = ["Empathise", "Define", "Ideate", "Prototype", "Test", "Decide", "Learn"];
 const DEMO = "Should RAQIB pilot in a Dubai hypermarket or a Greenlam plant first?";
@@ -44,10 +45,33 @@ export default function Room() {
   const [busy, setBusy] = useState(false);
   const [chair, setChair] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [chamber, setChamber] = useState<ChamberData | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     api.seats().then(setSeats).catch((e) => setError((e as Error).message));
+
+    /* Restore the session the other tabs are working on. Without this, walking
+     * to the Memo and back would drop you at an empty form with the debate you
+     * just ran still sitting in the database, unreachable. */
+    const existing = currentSession();
+    if (existing) {
+      void (async () => {
+        try {
+          const [state, room] = await Promise.all([
+            api.session(existing),
+            api.chamber(existing),
+          ]);
+          setSession(state);
+          setChamber(room);
+        } catch {
+          // The session is gone (a restart cleared the database, say). Leaving
+          // the form empty is the right answer; a stale id is not an error the
+          // reader needs to see.
+        }
+      })();
+    }
+
     return () => abort.current?.abort();
   }, []);
 
@@ -60,6 +84,7 @@ export default function Room() {
       const opened = await api.openSession(question, stage);
       setSession(opened);
       setCurrentSession(opened.session_id);
+      setChamber(await api.chamber(opened.session_id));
       setStatus(t.room.opened);
     } catch (e) {
       setError((e as Error).message);
@@ -104,6 +129,7 @@ export default function Room() {
                 : t.room.broken,
             );
             api.session(session.session_id).then(setSession).catch(() => undefined);
+            api.chamber(session.session_id).then(setChamber).catch(() => undefined);
           }
         },
         abort.current.signal,
@@ -123,6 +149,7 @@ export default function Room() {
       setChair("");
       setStatus(t.room.chairHeard);
       setSession(await api.session(session.session_id));
+      setChamber(await api.chamber(session.session_id));
     } catch (err) {
       setError((err as Error).message);
     }
@@ -196,6 +223,20 @@ export default function Room() {
       )}
 
       {error ? <p className="erratum">{error}</p> : null}
+
+      {chamber ? (
+        <Chamber
+          data={chamber}
+          labels={{
+            replay: t.room.replay,
+            turn: t.room.turn,
+            of: t.room.of,
+            fallbackNote: t.room.fallbackNote,
+            silent: t.room.silent,
+            speaking: t.room.speakingNow,
+          }}
+        />
+      ) : null}
 
       {ordered.length > 0 ? (
         <div className="entries">

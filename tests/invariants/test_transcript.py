@@ -121,3 +121,53 @@ def test_every_signed_field_is_actually_covered(field):
     turns[0] = dataclasses.replace(turns[0], **{field: mutated})
     t.adopt(turns)
     assert turns[0].turn_id in t.verify(), f"{field} is not covered by the signature"
+
+
+def test_the_signing_key_survives_a_restart():
+    """The bug this pins made every restart look like an attack.
+
+    A fresh key per process meant a transcript written before a restart failed
+    verification afterwards — and failed it in exactly the way tampering does,
+    so an ordinary deploy reported 'chain broken' and a reader had no way to
+    tell the two apart. A verification that cries wolf on a restart is worse
+    than none: it teaches people to ignore it.
+    """
+    import tempfile
+    from pathlib import Path as _Path
+
+    from services.api.core.db import connect
+    from services.api.crew.transcript import session_key
+
+    with tempfile.TemporaryDirectory() as tmp:
+        db = _Path(tmp) / "restart.db"
+
+        first = connect(db)
+        key_before = session_key(first)
+        t = Transcript(session_id="s1", key=key_before)
+        t.append(round_no=1, stage="Test", speaker="cfo", text="Payback is the constraint.")
+        stored = t.turns()
+        first.close()
+
+        # A new process: a new connection, and nothing carried over in memory.
+        second = connect(db)
+        try:
+            key_after = session_key(second)
+            assert key_after == key_before, "the installation key must be stable"
+
+            reopened = Transcript(session_id="s1", key=key_after)
+            reopened.adopt(stored)
+            assert reopened.verify() == [], "a restart must not look like tampering"
+        finally:
+            second.close()
+
+
+def test_an_explicit_key_beats_the_stored_one(monkeypatch):
+    from services.api.core.db import connect
+    from services.api.crew.transcript import session_key
+
+    monkeypatch.setenv("COUNSEL_TRANSCRIPT_KEY", "an-operator-supplied-key")
+    conn = connect(":memory:")
+    try:
+        assert session_key(conn) == b"an-operator-supplied-key"
+    finally:
+        conn.close()

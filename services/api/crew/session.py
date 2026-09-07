@@ -47,10 +47,18 @@ STAGE_RULES: dict[Stage, tuple[str, ...]] = {
     Stage.TEST: (
         "Score on desirability, feasibility and viability, and say which you are weakest on.",
         "Critique is expected here. Attack arguments, never the seat making them.",
+        # Added after measuring a real two-round debate: the seats produced five
+        # parallel monologues and named each other exactly zero times. A round
+        # where nobody answers anybody is not a debate, it is five position
+        # papers filed at once. A chair asks "whose point are you answering?"
+        # for the same reason.
+        "Name the seat whose argument you are answering. A round where nobody "
+        "answers anybody is five position papers, not a debate.",
     ),
     Stage.DECIDE: (
         "State a position and the evidence that would change it.",
         "Every number must cite a source.",
+        "Where you disagree with another seat, name it and say what it got wrong.",
     ),
     Stage.LEARN: (
         "Compare what happened to what this room predicted.",
@@ -71,8 +79,16 @@ class Session:
     #: a provider chain that could not serve. Never silently empty.
     ended_early: str | None = None
 
+    #: Set by the store so the transcript signs with the installation key
+    #: rather than a per-process one. See transcript.session_key.
+    signing_key: bytes | None = None
+
     def __post_init__(self) -> None:
-        self.transcript = Transcript(session_id=self.session_id)
+        self.transcript = (
+            Transcript(session_id=self.session_id, key=self.signing_key)
+            if self.signing_key
+            else Transcript(session_id=self.session_id)
+        )
 
     @property
     def rules(self) -> tuple[str, ...]:

@@ -226,6 +226,10 @@ export const api = {
       body: JSON.stringify({ chosen, actual, notes }),
     }),
   calibration: () => call<Calibration>("/ledger", {}, "viewer"),
+  chamber: (id: string) =>
+    call<import("@/components/chamber/Chamber").ChamberData>(
+      `/sessions/${id}/chamber`, {}, "viewer",
+    ),
   verify: (id: string) =>
     call<{ intact: boolean; broken_turns: string[]; n_turns: number }>(`/sessions/${id}/verify`, {}, "viewer"),
   health: () => call<Record<string, unknown>>("/healthz", {}, "viewer"),

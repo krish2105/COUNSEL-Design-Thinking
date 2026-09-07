@@ -85,12 +85,40 @@ def sign(payload: dict[str, object], key: bytes) -> str:
     return hmac.new(key, canonical(payload), hashlib.sha256).hexdigest()
 
 
-def session_key() -> bytes:
-    """The signing key. Set COUNSEL_TRANSCRIPT_KEY to make chains verifiable
-    across restarts; otherwise a fresh key is generated per process, which means
-    a transcript written before a restart will not verify after it."""
+def session_key(conn=None) -> bytes:
+    """The signing key, stable for the life of the installation.
+
+    Order: COUNSEL_TRANSCRIPT_KEY if set, then a key generated once and stored
+    in the database, then a per-process key for tests and in-memory use.
+
+    The middle case exists because of a bug this had. A fresh key per process
+    meant every restart made every past transcript fail verification — and fail
+    it in exactly the way tampering does, so the Room would report "chain
+    broken" after an ordinary deploy and a reader would have no way to tell the
+    difference between a restarted server and an edited record. A verification
+    that cries wolf on a restart is worse than none, because it teaches people
+    to ignore it.
+
+    This does not change what the signature defends against. The key sits beside
+    the data either way; see the module docstring. It changes only whether a
+    restart is mistaken for an attack.
+    """
     configured = os.getenv("COUNSEL_TRANSCRIPT_KEY", "")
-    return configured.encode() if configured else _PROCESS_KEY
+    if configured:
+        return configured.encode()
+    if conn is not None:
+        row = conn.execute("SELECT value FROM instance WHERE key = 'transcript_key'").fetchone()
+        if row is not None:
+            return bytes.fromhex(row["value"] if hasattr(row, "keys") else row[0])
+        generated = secrets.token_bytes(32)
+        conn.execute(
+            "INSERT OR IGNORE INTO instance(key, value) VALUES ('transcript_key', ?)",
+            (generated.hex(),),
+        )
+        conn.commit()
+        row = conn.execute("SELECT value FROM instance WHERE key = 'transcript_key'").fetchone()
+        return bytes.fromhex(row["value"] if hasattr(row, "keys") else row[0])
+    return _PROCESS_KEY
 
 
 _PROCESS_KEY = secrets.token_bytes(32)

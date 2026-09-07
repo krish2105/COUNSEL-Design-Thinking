@@ -45,8 +45,17 @@ class Facilitator:
         self.llm = llm
         self.max_turn_tokens = max_turn_tokens
 
-    def open(self, session_id: str, question: str, *, stage: Stage = Stage.DEFINE) -> Session:
-        session = Session(session_id=session_id, question=question, stage=stage)
+    def open(
+        self,
+        session_id: str,
+        question: str,
+        *,
+        stage: Stage = Stage.DEFINE,
+        signing_key: bytes | None = None,
+    ) -> Session:
+        session = Session(
+            session_id=session_id, question=question, stage=stage, signing_key=signing_key
+        )
         session.transcript.append(
             round_no=0,
             stage=str(stage),

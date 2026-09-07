@@ -160,6 +160,13 @@ CREATE TABLE IF NOT EXISTS evidence (
     PRIMARY KEY (session_id, evidence_id)
 );
 
+-- Installation-level values that must survive a restart. Currently one: the
+-- transcript signing key.
+CREATE TABLE IF NOT EXISTS instance (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS quotas (
     provider TEXT PRIMARY KEY,
     used     INTEGER NOT NULL

@@ -38,6 +38,8 @@ type Dict = {
     unsignedNote: string; auditor: string; chair: string; chairLede: string;
     chairPlaceholder: string; speak: string; chairHeard: string;
     blindSpots: string; blindSpotsLede: string;
+    chamber: string; replay: string; turn: string; of: string;
+    fallbackNote: string; silent: string; speakingNow: string;
   };
   documents: {
     title: string;
@@ -160,6 +162,13 @@ const en: Dict = {
     chairHeard: "Chair recorded. The room will hear it next round.",
     blindSpots: "What each seat admits it gets wrong",
     blindSpotsLede: "Divergence only works if the room's biases are on the table. Read these before weighing anything above.",
+    chamber: "The table",
+    replay: "Replay the debate",
+    turn: "Turn",
+    of: "of",
+    fallbackNote: "Drawn flat: this machine has no WebGL. Same seats, same edges, same numbers.",
+    silent: "the chair",
+    speakingNow: "is speaking",
   },
   documents: {
     title: "Documents",
@@ -282,6 +291,13 @@ const hi: Dict = {
     chairHeard: "अध्यक्ष दर्ज। कक्ष अगले दौर में सुनेगा।",
     blindSpots: "हर पक्ष अपनी कौन-सी कमज़ोरी मानता है",
     blindSpotsLede: "विचलन तभी काम करता है जब कक्ष के पूर्वाग्रह सामने हों। ऊपर कुछ भी तौलने से पहले इन्हें पढ़ें।",
+    chamber: "मेज़",
+    replay: "बहस दोहराएँ",
+    turn: "प्रविष्टि",
+    of: "में से",
+    fallbackNote: "सपाट चित्र: इस मशीन में WebGL नहीं है। वही पक्ष, वही रेखाएँ, वही आँकड़े।",
+    silent: "अध्यक्ष",
+    speakingNow: "बोल रहे हैं",
   },
   documents: {
     title: "दस्तावेज़",
@@ -404,6 +420,13 @@ const ar: Dict = {
     chairHeard: "سُجِّل الرئيس. ستسمعه القاعة في الجولة القادمة.",
     blindSpots: "ما يعترف كل مقعد بأنه يخطئ فيه",
     blindSpotsLede: "لا ينجح التباعد إلا إذا كانت تحيزات القاعة على الطاولة. اقرأ هذه قبل أن تزن ما سبق.",
+    chamber: "الطاولة",
+    replay: "أعد تشغيل النقاش",
+    turn: "مداخلة",
+    of: "من",
+    fallbackNote: "مرسومة مسطحة: لا يدعم هذا الجهاز WebGL. المقاعد نفسها والروابط نفسها والأرقام نفسها.",
+    silent: "الرئيس",
+    speakingNow: "يتحدث",
   },
   documents: {
     title: "المستندات",

@@ -33,6 +33,7 @@ from services.api.crew.facilitator import Facilitator
 from services.api.crew.mandate import SEATING, load_mandates
 from services.api.crew.session import STAGE_RULES, Stage
 from services.api.crew.tools import granted
+from services.api.crew.transcript import session_key
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -63,8 +64,10 @@ def _load_or_404(session_id: str):
 
 @router.post("", dependencies=[Depends(require(Scope.SESSION_WRITE))])
 def open_session(body: OpenSession) -> dict[str, object]:
-    session = _facilitator().open(uuid.uuid4().hex[:12], body.question, stage=body.stage)
     conn = deps.db()
+    session = _facilitator().open(
+        uuid.uuid4().hex[:12], body.question, stage=body.stage, signing_key=session_key(conn)
+    )
     store.save_session(session, conn=conn)
     store.save_turns(session.transcript.turns(), conn=conn, start_ordinal=0)
     return _describe(session)
@@ -127,6 +130,19 @@ def transcript(session_id: str) -> dict[str, object]:
             for t in session.transcript.turns()
         ],
     }
+
+
+@router.get("/{session_id}/chamber", dependencies=[Depends(require(Scope.READ))])
+def chamber(session_id: str) -> dict[str, object]:
+    """Everything the round table draws, derived from the signed transcript.
+
+    Nothing here is stored. A chamber loaded from its own saved state could
+    drift from the record it claims to show; this one has no state of its own.
+    """
+    from services.api.crew.chamber import chamber_state
+
+    _load_or_404(session_id)
+    return chamber_state(session_id, conn=deps.db())
 
 
 @router.get("/{session_id}/verify", dependencies=[Depends(require(Scope.READ))])

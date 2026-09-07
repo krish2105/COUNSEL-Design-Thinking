@@ -1,0 +1,19 @@
+{
+  "generated_by": "measured against qwen3:8b during Phase D, task D1",
+  "question": "Do five agents in a facilitated round actually argue with each other?",
+  "method": "Two real rounds, Test stage. An edge is derived when one seat names another; self-mentions are excluded.",
+  "before_any_facilitation_rule": {
+    "turns": 10,
+    "edges": 0,
+    "observed": "The only seat names in the transcript were SELF-references: the CMO opened with **CMO Argument:** and the COO with As COO. Not one seat referred to another.",
+    "diagnosis": "The Test stage rules said critique is expected and attack arguments, never the seat making them — which implies engaging with another seat and never asks for it. Five agents answering the same question concurrently produce five position papers filed at once."
+  },
+  "after_adding_the_rule": {
+    "rule": "Name the seat whose argument you are answering. A round where nobody answers anybody is five position papers, not a debate.",
+    "turns": 10,
+    "edges": 1,
+    "observed": "One cross-reference: cfo -> cmo in round 2."
+  },
+  "honest_reading": "An explicit facilitation rule moved cross-referencing from 0/10 to 1/10. That is a real effect and a small one. An 8B model largely does not engage even when instructed to, and no further prompt tuning was attempted: tuning until the picture looked busier would be optimising the visualisation rather than the debate.",
+  "consequence_for_the_interface": "A chamber with few edges is the normal case and the caption says what an edge means, so a sparse picture reads as a sparse debate rather than as a broken diagram. The chamber never infers agreement, sentiment or intensity — a thicker line for a stronger objection would be inventing a measurement the transcript does not contain, and a 3D view is exactly where an invented measurement would be least questioned."
+}
