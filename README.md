@@ -7,6 +7,34 @@ outcome ledger that scores each agent's calibration once reality arrives.
 
 Built for SP Jain MAIB Term 4, MGT 204 Design Thinking. Owner: Krishna Mathur.
 
+![The Room — five mandates at a lit table, the debate replayed turn by turn](docs/images/room-chamber.png)
+
+The chamber draws only what the signed transcript says: five fixed seats, and an arc where one
+seat named another. The caption is part of the design — an edge means a seat was *named*, not
+that it agreed or how strongly, and the interface says so rather than letting a pretty graph
+imply more than the data holds.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/crew-blindspots.png" alt="The CFO mandate, listing what it argues from, what it admits it under-weights, and what it accepts as evidence"></td>
+<td width="50%"><img src="docs/images/crew-capability.png" alt="Capability table: every agent, its tools, and side effects — none, on every row"></td>
+</tr>
+<tr>
+<td><b>Every mandate publishes its blind spots.</b> The CFO says in its own prompt that it
+under-weights option value and prices unquantifiable things at zero. Divergence is only worth
+anything if the room's biases are on the table before you weigh what it said.</td>
+<td><b>The whole safety claim fits in one table.</b> No tool writes to the outside world, and
+that is asserted over the entire registry by a test rather than reviewed by eye — so a tool
+added tomorrow with a side effect fails the build.</td>
+</tr>
+</table>
+
+> Captured from a local run — Ollama `qwen3:8b` for inference, `bge-m3` for embeddings — which
+> is the configuration this project claims. The deployed free-tier instance has no provider keys
+> and no embedder, so its turns are deterministic stub text; screenshotting that would show
+> placeholder output dressed up as a product. Regenerate with
+> `cd apps/web && COUNSEL_SESSION=<id> node scripts/screenshots.mjs`.
+
 ## Standing constraints
 
 - **Zero paid inference.** Ollama → Gemini (free) → Groq (free) → deterministic stub.
