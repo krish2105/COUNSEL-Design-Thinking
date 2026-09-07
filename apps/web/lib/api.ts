@@ -281,7 +281,14 @@ export const api = {
       document: { doc_id: string; n_chunks: number; ingested: boolean; why_not_refused: string };
       detected: { n_findings: number; patterns: string[] };
       structural: { tool_it_asked_for: string; publish_tools_in_registry: string[]; verdict: string };
-      citation_gate: { injected_claim: string; reached_the_memo: boolean; why: string };
+      citation_gate: {
+        injected_claim: string;
+        reached_the_memo: boolean;
+        uncited: { reached_the_memo: boolean; why: string };
+        cited_to_itself: {
+          reached_the_memo: boolean; why: string; flagged_patterns: string[];
+        };
+      };
       honest_limit: string;
     }>(`/security/redteam`, {
       method: "POST",

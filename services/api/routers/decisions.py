@@ -232,6 +232,9 @@ def _memo_payload(built) -> dict[str, object]:
         "unanimous_dissent": built.unanimous_dissent,
         "dissents": [d.__dict__ for d in built.dissents],
         "margin": built.margin,
+        "refused_provenance": [
+            {"claim": claim, "patterns": patterns} for claim, patterns in built.refused_provenance
+        ],
     }
 
 

@@ -53,7 +53,13 @@ from services.api.core.schemas import DissentDraft, MemoDraft
 from services.api.crew.mandate import SEATING, load_mandates
 from services.api.crew.session import Session
 from services.api.crew.stages import Evidence, OptionResult, aggregate, margin
-from services.api.rag.citations import Citation, UncitedClaim, require_citations
+from services.api.rag.citations import (
+    Citation,
+    PoisonedCitation,
+    UncitedClaim,
+    flagged_patterns,
+    require_citations,
+)
 from services.api.rag.retrieve import retrieve
 
 
@@ -86,6 +92,11 @@ class Memo:
     #: What the room asserted and could not support. Kept, labelled, and never
     #: presented as a finding.
     uncited: list[str] = field(default_factory=list)
+    #: Claims whose ONLY support in the corpus sits inside a passage the scanner
+    #: flagged as an injection attempt. Separate from `uncited` because the
+    #: admissions differ: one says no evidence was found, the other says the
+    #: evidence found was planted. Each entry is (claim, patterns it cited into).
+    refused_provenance: list[tuple[str, list[str]]] = field(default_factory=list)
     evidence: list[Evidence] = field(default_factory=list)
     generated_at: str = ""
     #: True when EVERY seat disagreed with the recommendation. The arithmetic
@@ -100,13 +111,23 @@ class Memo:
     ungrounded: bool = False
 
 
-def ground(text: str, *, conn: Connection, limit: int = 3) -> list[Citation]:
+def ground(
+    text: str, *, conn: Connection, limit: int = 3, include_flagged: bool = False
+) -> list[Citation]:
     """Find spans that actually support a claim.
 
     Retrieval-then-verify, deliberately in that order. Asking the model for a
     citation and checking it afterwards fails in the way Phase B measured; here
     the candidate spans come from the corpus, and only a verbatim overlap
     survives.
+
+    Spans the scanner flagged as injection attempts are dropped before they are
+    ever offered, so a claim with genuine support elsewhere keeps its genuine
+    citations instead of being refused wholesale for one poisoned neighbour.
+    `include_flagged=True` returns them anyway — build_memo asks for that so it
+    can tell "nothing supports this" apart from "the only thing supporting this
+    was planted", which are different admissions and the reader gets the right
+    one.
     """
     hits = retrieve(text, conn=conn, limit=limit).hits
     citations = []
@@ -115,14 +136,14 @@ def ground(text: str, *, conn: Connection, limit: int = 3) -> list[Citation]:
         # rank near it. Ranking near a span is what retrieval does for anything.
         overlap = _longest_shared_phrase(text, hit.chunk.text)
         if len(overlap) >= 24:
-            citations.append(
-                Citation(
-                    doc_id=hit.chunk.doc_id,
-                    start=hit.chunk.start,
-                    end=hit.chunk.end,
-                    quote=overlap,
-                )
+            citation = Citation(
+                doc_id=hit.chunk.doc_id,
+                start=hit.chunk.start,
+                end=hit.chunk.end,
+                quote=overlap,
             )
+            if include_flagged or not flagged_patterns(citation, conn=conn):
+                citations.append(citation)
     return citations
 
 
@@ -198,11 +219,29 @@ def build_memo(
             if key in seen:
                 continue
             seen.add(key)
-            citations = ground(sentence, conn=conn)
+            # Flagged spans are requested here and filtered below, so that a
+            # claim supported ONLY by an attack can be reported as such rather
+            # than disappearing into the generic "no evidence" bucket.
+            candidates = ground(sentence, conn=conn, include_flagged=True)
+            poisoned = {
+                pattern
+                for candidate in candidates
+                for pattern in flagged_patterns(candidate, conn=conn)
+            }
+            citations = [c for c in candidates if not flagged_patterns(c, conn=conn)]
             try:
                 require_citations(sentence, citations, conn=conn)
+            except PoisonedCitation:
+                # ground() already filtered these, so reaching here means the
+                # gate caught something the filter did not. Fail closed and say
+                # which, rather than letting it through as merely uncited.
+                memo.refused_provenance.append((sentence, sorted(poisoned)))
+                continue
             except UncitedClaim:
-                memo.uncited.append(sentence)
+                if poisoned:
+                    memo.refused_provenance.append((sentence, sorted(poisoned)))
+                else:
+                    memo.uncited.append(sentence)
                 continue
             getattr(memo, bucket).append(Claim(text=sentence, citations=tuple(citations)))
 
@@ -344,11 +383,32 @@ def render_markdown(memo: Memo) -> str:
         ]
         out += [f"- {u}" for u in memo.uncited] + [""]
 
+    if memo.refused_provenance:
+        out += [
+            "## Refused: the only support was planted",
+            "",
+            "The room asserted these, and the only text in the corpus that supports them sits "
+            "inside a passage the scanner flagged as an injection attempt. A quote that "
+            "resolves is not the same as a source that can be trusted — every document here is "
+            "untrusted by construction, so the gate checks what the scanner marked rather than "
+            "who uploaded it. These are refused, not cited, and named rather than hidden.",
+            "",
+        ]
+        out += [
+            f"- {claim} — cited into: {', '.join(patterns)}"
+            for claim, patterns in memo.refused_provenance
+        ] + [""]
+
     out += [
         "---",
         "",
         f"Session `{memo.session_id}` · generated {memo.generated_at} · "
-        f"{len(memo.context) + len(memo.reasoning)} cited claims, {len(memo.uncited)} uncited.",
+        f"{len(memo.context) + len(memo.reasoning)} cited claims, {len(memo.uncited)} uncited"
+        + (
+            f", {len(memo.refused_provenance)} refused for provenance."
+            if memo.refused_provenance
+            else "."
+        ),
         "",
         "*COUNSEL is a decision-support tool. It is not financial, legal or professional "
         "advice, and the agents' expertise is prompt-defined.*",

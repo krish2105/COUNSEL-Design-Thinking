@@ -102,6 +102,7 @@ type Dict = {
     fenced: string;
     redteamTitle: string; redteamLede: string; redteamRun: string; redteamNoSession: string;
     step1: string; step2: string; step3: string; step4: string;
+    step4Uncited: string; step4Cited: string;
     ingested: string; detected: string; structural: string; refused: string; flagged: string;
   };
   theme: { light: string; dark: string };
@@ -298,7 +299,9 @@ const en: Dict = {
     step1: "The document is taken, not refused",
     step2: "The scanner marks it",
     step3: "The tool it asked for does not exist",
-    step4: "Its claim cannot reach the memo",
+    step4: "Its claim is refused at both doors",
+    step4Uncited: "Asserted with no citation:",
+    step4Cited: "Citing its own sentence, which does resolve:",
     ingested: "ingested",
     detected: "detected",
     structural: "structural",
@@ -499,7 +502,9 @@ const hi: Dict = {
     step1: "दस्तावेज़ लिया जाता है, अस्वीकार नहीं",
     step2: "स्कैनर इसे चिह्नित करता है",
     step3: "जो उपकरण माँगा गया वह अस्तित्व में ही नहीं",
-    step4: "इसका दावा ज्ञापन तक नहीं पहुँच सकता",
+    step4: "इसका दावा दोनों रास्तों पर अस्वीकृत",
+    step4Uncited: "बिना उद्धरण के दावा:",
+    step4Cited: "अपने ही वाक्य का उद्धरण, जो वास्तव में मिलता है:",
     ingested: "ग्रहण किया",
     detected: "पकड़ा गया",
     structural: "संरचनात्मक",
@@ -700,7 +705,9 @@ const ar: Dict = {
     step1: "يُقبل المستند ولا يُرفض",
     step2: "يعلّمه الماسح",
     step3: "الأداة التي طلبها غير موجودة أصلاً",
-    step4: "لا يمكن لادعائه بلوغ المذكرة",
+    step4: "ادعاؤه مرفوض من كلا البابين",
+    step4Uncited: "مذكور دون أي استشهاد:",
+    step4Cited: "يستشهد بجملته هو، وهي تُطابق فعلاً:",
     ingested: "مُدخل",
     detected: "مكتشف",
     structural: "بنيوي",

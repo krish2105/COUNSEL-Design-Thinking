@@ -102,7 +102,7 @@ Phase A: the substrate the boardroom will run on.
 | **Inference** | Ollama → Gemini (free) → Groq (free) → Anthropic (present, hard-off) → deterministic stub. Each skip recorded with its reason. |
 | **Search** | Self-hosted SearXNG → OpenAlex + Wikipedia + DuckDuckGo (keyless) → your links → fixtures. |
 | **Retrieval** | BM25 + `bge-m3` vectors, fused by rank, normalised so a translation is not buried under English. |
-| **Citations** | A claim is refused unless its quote is verbatim inside the span it cites. |
+| **Citations** | A claim is refused unless its quote is verbatim inside the span it cites — **and** unless that span is clean. Quoting an injected sentence accurately produces a citation that resolves, which is how an attacker's forged system line once reached a real memo's Reasoning section. Groundedness is not provenance. |
 | **Security** | One untrusted-content boundary. Catches five injection families; clears a real governance policy. |
 | **Web** | Trilingual EN/HI/AR with RTL, two colour registers, the dissent-margin rail. |
 
@@ -141,7 +141,7 @@ Phase E: the harness and the artefacts.
 | | |
 |---|---|
 | **OWASP LLM Top 10** | 22 assertions, 8 risks covered, 0 gaps, 2 declared not applicable with reasons. The scorecard is **generated from the test names** — verified by renaming a control's tests away and watching the row flip to GAP. |
-| **The two named attacks** | A poisoned document does not change the memo's recommendation; a turn signed with the wrong key breaks the chain. |
+| **The two named attacks** | A poisoned document does not change the memo's recommendation, and cannot be quoted into it — the memo names what it refused and why; a turn signed with the wrong key breaks the chain. |
 | **Term 4 artefacts** | Report (docx + md), deck outline, 15 viva questions, 3-minute demo script — every figure read from `docs/results/` at build time. Delete a results file and the build fails. |
 
 ## Score

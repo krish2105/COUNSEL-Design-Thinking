@@ -150,7 +150,18 @@ export default function Security() {
             <RailEntry mark="04" note={t.security.refused}>
               <h3 className="entry-title">{t.security.step4}</h3>
               <p className="excerpt">{attack.citation_gate.injected_claim}</p>
-              <p className="passage">{attack.citation_gate.why}</p>
+              {/* Both doors, because only one of them used to be tested. The
+                  second is the one that mattered: the attacker's sentence is IN
+                  the corpus, so quoting it accurately produces a citation that
+                  genuinely resolves. */}
+              <p className="passage">
+                <span className="arm">{t.security.step4Uncited}</span>
+                {attack.citation_gate.uncited.why}
+              </p>
+              <p className="passage">
+                <span className="arm">{t.security.step4Cited}</span>
+                {attack.citation_gate.cited_to_itself.why}
+              </p>
             </RailEntry>
           </div>
         ) : null}

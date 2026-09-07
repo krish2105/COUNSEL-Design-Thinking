@@ -8,7 +8,9 @@
       "status": "covered",
       "control": "One untrusted-content boundary. Uploaded documents and search results are scanned and fenced; a poisoned document is ingested and marked rather than refused, and cannot change the memo.",
       "tests": [
+        "test_LLM01_a_claim_cannot_cite_the_injection_that_carried_it",
         "test_LLM01_a_poisoned_document_is_ingested_and_marked_not_refused",
+        "test_LLM01_clean_text_in_a_poisoned_document_remains_citable",
         "test_LLM01_governance_prose_is_not_a_false_positive",
         "test_LLM01_injection_in_uploaded_content_is_detected",
         "test_LLM01_the_fence_cannot_be_escaped_from_inside"
@@ -109,6 +111,6 @@
   "n_not_applicable": 2,
   "n_gaps": 0,
   "gaps": [],
-  "n_assertions": 22,
-  "run_at": "2026-09-07T05:49:49Z"
+  "n_assertions": 24,
+  "run_at": "2026-09-07T06:54:28Z"
 }
