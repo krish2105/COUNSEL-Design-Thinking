@@ -68,7 +68,17 @@ Phase C: the decision.
 | **What would change our mind** | Executable. Remove one piece of evidence, re-aggregate, report the flip — as arithmetic, and labelled as sensitivity analysis rather than a re-argument. |
 | **The ledger** | Brier calibration per seat, refusing to show a score below five outcomes. |
 
-Phases D–E add the 3D round table with replay, the OWASP harness and the Term 4 artefacts.
+Phase D: the chamber and the rest of the room.
+
+| | |
+|---|---|
+| **The chamber** | A 3D round table computed entirely from the signed transcript — no assets, no stored positions. `frameloop="demand"`, with an SVG fallback tested by *denying WebGL* rather than by setting a flag. |
+| **Replay** | Scrub a debate and watch the argument build. |
+| **Ten tabs** | Room, Stages, Board, Decide, Report, Ledger, Crew, Documents, Ask, Security — each asserted reachable, axe-clean and overflow-free on desktop and mobile. |
+| **Voice** | A deterministic offline voice per mandate. Off by default. |
+| **Red team, live** | Poison a document into the running session and watch the four defences answer it. |
+
+Phase E adds the OWASP harness and the Term 4 artefacts.
 
 ## Two things a real run changed
 
@@ -79,6 +89,11 @@ the noise. The memo now says so above the ranking table.
 
 **A ~100-second request dies at every gateway.** The same scoring call returns 500 at exactly
 30 seconds through a proxy and 200 after 103 seconds direct. Everything long is streamed.
+
+**Five agents do not argue with each other unless a chair makes them.** Ten turns produced
+zero cross-references — the only seat names in the transcript were self-references. An explicit
+facilitation rule moved that to one in ten. Real, and small; no further tuning was attempted,
+because tuning until the diagram looked busier would be optimising the picture, not the debate.
 
 ## The finding that shaped Phase B
 
@@ -96,12 +111,13 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 - [docs/models.md](docs/models.md) — model choices and the spikes that decided them
 - [docs/crew.md](docs/crew.md) — the mandates, their blind spots, and the Auditor's measured limits
 - [docs/decisions.md](docs/decisions.md) — the stages, what the memo guarantees, and what it does not
+- [docs/chamber.md](docs/chamber.md) — what the 3D view shows, and where a picture like it could mislead
 - [docs/results/](docs/results/) — every measured number the docs cite
 - [docs/superpowers/plans/](docs/superpowers/plans/) — the master plan and the Phase A task plan
 
 ## Testing
 
 ```bash
-make check   # ruff, 304 pytest, contrast gate, placeholder scan, typecheck
-make e2e     # 40 Playwright tests on desktop and mobile (needs `make api` and `make web`)
+make check   # ruff, 319 pytest, contrast gate, placeholder scan, typecheck
+make e2e     # 94 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 ```
