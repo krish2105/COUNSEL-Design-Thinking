@@ -14,7 +14,13 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 
 # Directories whose content is authored by this project and must be complete.
-SCAN_DIRS = ["docs", "services", "apps/web/app", "apps/web/components", "apps/web/lib"]
+SCAN_DIRS = [
+    "docs",
+    "services",
+    "apps/web/app",
+    "apps/web/components",
+    "apps/web/lib",
+]
 SCAN_FILES = ["README.md"]
 
 # The plan documents legitimately quote the master plan's own phase language and

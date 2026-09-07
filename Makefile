@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: check lint test web-check contrast placeholders owasp api web e2e
+.PHONY: check lint test web-check contrast placeholders owasp artefacts api web e2e
 
 UV := uv run
 
@@ -28,6 +28,10 @@ placeholders:
 
 owasp:
 	$(UV) python scripts/owasp_scorecard.py
+
+artefacts:
+	$(UV) python scripts/build_report.py
+	$(UV) python scripts/build_artefacts.py
 
 web-check:
 	cd apps/web && npm run typecheck
