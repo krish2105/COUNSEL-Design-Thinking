@@ -18,16 +18,23 @@ Built for SP Jain MAIB Term 4, MGT 204 Design Thinking. Owner: Krishna Mathur.
 
 ## Live
 
-**Not deployed.** This is the honest state and the largest gap in the project — see
-[docs/scorecard.md](docs/scorecard.md), where it costs 14 of 100 marks.
+**https://counsel-gray.vercel.app**
 
-Everything needed is written and parses: `render.yaml`, `apps/web/vercel.json`, a CI
-workflow, and step-by-step instructions in [docs/deploy.md](docs/deploy.md). It needs
-free Gemini and Groq keys plus GitHub, Render and Vercel accounts — about thirty
-minutes, zero cost.
+| | |
+|---|---|
+| Web | https://counsel-gray.vercel.app — Vercel, free |
+| API | https://counsel-api-ileh.onrender.com/healthz — Render, free, Singapore |
+| Repo | `krish2105/COUNSEL-Design-Thinking` |
 
-Running locally: web on `:3000`, API on `:8000`, inference on local Ollama (`qwen3:8b`),
-embeddings on `bge-m3:567m`.
+**Two things to expect.** The API sleeps after 15 minutes idle on Render's free
+tier, so the first request takes about a minute — [/crew](https://counsel-gray.vercel.app/crew)
+and the capability table need no model at all and are the fastest thing to load.
+And storage is ephemeral: uploads and sessions reset on each deploy, because a
+free Render service cannot attach a persistent disk.
+
+Running locally instead: web on `:3000`, API on `:8000`, inference on local Ollama
+(`qwen3:8b`), embeddings on `bge-m3:567m` — which is faster and keeps everything
+on your machine.
 
 ## Running it
 
