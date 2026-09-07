@@ -16,6 +16,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { SEATS, cssColourToHex, isWebGLAvailable, type Seat } from "@/lib/chamber";
+import type { Variant } from "./scenes";
 import { TableSVG, type ChamberEdge } from "./TableSVG";
 
 const Table3D = dynamic(() => import("./Table3D").then((m) => m.Table3D), {
@@ -56,6 +57,13 @@ function seatColours(): Record<string, string> {
   );
 }
 
+const VARIANTS: { id: Variant; label: string }[] = [
+  { id: "obsidian", label: "Obsidian" },
+  { id: "architect", label: "Model" },
+  { id: "candlelit", label: "Candlelit" },
+  { id: "orrery", label: "Orrery" },
+];
+
 export function Chamber({
   data,
   labels,
@@ -74,6 +82,33 @@ export function Chamber({
   const [use3D, setUse3D] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [colours, setColours] = useState<Record<string, string>>({});
+  const [variant, setVariant] = useState<Variant>("obsidian");
+
+  /* The URL wins (?chamber=orrery, for comparing them side by side or grabbing
+   * a screenshot), then the reader's saved preference. The table is the one
+   * screen with a real aesthetic choice in it, so the choice is remembered. */
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("chamber");
+    if (wanted && VARIANTS.some((v) => v.id === wanted)) {
+      setVariant(wanted as Variant);
+      return;
+    }
+    try {
+      const saved = window.localStorage.getItem("counsel-chamber");
+      if (saved && VARIANTS.some((v) => v.id === saved)) setVariant(saved as Variant);
+    } catch {
+      /* Site data blocked. The default is fine. */
+    }
+  }, []);
+
+  function chooseVariant(next: Variant) {
+    setVariant(next);
+    try {
+      window.localStorage.setItem("counsel-chamber", next);
+    } catch {
+      /* Not remembering it is a smaller failure than refusing to change it. */
+    }
+  }
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -131,6 +166,7 @@ export function Chamber({
             activeOrdinal={ordinal}
             colours={colours}
             reduced={reduced}
+            variant={variant}
           />
         ) : (
           <TableSVG
@@ -142,6 +178,27 @@ export function Chamber({
           />
         )}
       </div>
+
+      {use3D ? (
+        <div
+          className="chamber-variants"
+          role="group"
+          aria-label="Table style"
+          data-variant={variant}
+        >
+          {VARIANTS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className="lang"
+              aria-pressed={variant === v.id}
+              onClick={() => chooseVariant(v.id)}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <p className="chamber-caption">{data.shows}</p>
       {!use3D ? <p className="chamber-caption">{labels.fallbackNote}</p> : null}

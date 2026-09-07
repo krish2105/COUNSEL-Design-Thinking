@@ -5,6 +5,22 @@ picture like this could mislead.
 
 ---
 
+## Four tables, one set of numbers
+
+The chamber ships four scenes and the reader picks: **Orrery** (brass rings and
+jewelled markers, the ring turning while a seat speaks), **Architect's Model**
+(bone-white table, machined pins, soft contact shadows), **Candlelit Chamber**
+(five tapers on dark wood, light pooling in seat colours), and **Obsidian
+Council** (lit monoliths on a reflective slab).
+
+They differ only in material, light and form. Every one draws the same five
+fixed seats, the same derived edges and the same recency glow, because the
+geometry helpers are shared — a variant cannot accidentally show more or less
+than the record. A test opens all four and asserts each renders a canvas, keeps
+the caption, and resolves five distinct seat colours.
+
+The choice is remembered. `?chamber=orrery` overrides it for comparison.
+
 ## What it is
 
 Five abstract forms around a lit ring. A seat glows when it speaks and fades over

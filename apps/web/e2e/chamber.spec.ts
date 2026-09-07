@@ -108,3 +108,36 @@ test("the chamber does not overflow its column", async ({ page }) => {
     }),
   ).toBe(true);
 });
+
+const VARIANTS = ["obsidian", "architect", "candlelit", "orrery"] as const;
+
+for (const variant of VARIANTS) {
+  test(`the ${variant} table renders a canvas and draws the same data`, async ({ page }) => {
+    await page.goto(`/room?chamber=${variant}`);
+    await page.getByRole("button", { name: "Open the room" }).click();
+    await expect(page.locator(".chamber")).toBeVisible({ timeout: 30_000 });
+
+    await expect(page.locator(".chamber-variants")).toHaveAttribute("data-variant", variant);
+    await expect(page.locator(".chamber-stage canvas")).toBeVisible({ timeout: 20_000 });
+
+    /* Whatever the scene looks like, it is drawn from the same numbers: the
+     * caption and the seat colours come from one place for all four. */
+    await expect(page.locator(".chamber-caption").first()).toContainText("not that it agreed");
+    const raw = await page.locator(".chamber-stage").getAttribute("data-colours");
+    expect(new Set((raw ?? "").split(",")).size).toBe(5);
+  });
+}
+
+test("the chosen table is remembered", async ({ page }) => {
+  await page.goto("/room");
+  await page.getByRole("button", { name: "Open the room" }).click();
+  await expect(page.locator(".chamber-variants")).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole("button", { name: "Orrery" }).click();
+  await expect(page.locator(".chamber-variants")).toHaveAttribute("data-variant", "orrery");
+
+  await page.goto("/room");
+  await expect(page.locator(".chamber-variants")).toHaveAttribute("data-variant", "orrery", {
+    timeout: 30_000,
+  });
+});

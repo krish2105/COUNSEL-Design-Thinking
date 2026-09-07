@@ -641,3 +641,5 @@ button.ghost:hover { color: var(--text); background: var(--surface-hover); }
   .method, .chamber-caption { color: #444; }
   a[href]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #555; }
 }
+
+.chamber-variants { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
