@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: check lint test web-check contrast placeholders api web e2e
+.PHONY: check lint test web-check contrast placeholders owasp api web e2e
 
 UV := uv run
 
-check: lint test contrast placeholders web-check
+check: lint test contrast placeholders owasp web-check
 
 # e2e is separate from `check` on purpose: it needs the API and the web server
 # running, so folding it in would make the default green bar depend on two
@@ -25,6 +25,9 @@ contrast:
 
 placeholders:
 	$(UV) python scripts/placeholder_scan.py
+
+owasp:
+	$(UV) python scripts/owasp_scorecard.py
 
 web-check:
 	cd apps/web && npm run typecheck

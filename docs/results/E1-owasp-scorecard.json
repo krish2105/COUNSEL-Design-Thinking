@@ -1,0 +1,114 @@
+{
+  "generated_by": "services/api/security/scorecard.py, read from tests/invariants/test_owasp.py",
+  "note": "Generated from the test suite, not written beside it. A risk is covered only if a test named for it exists; a risk with no test prints as a GAP. The document cannot claim more than the suite proves.",
+  "risks": [
+    {
+      "id": "LLM01",
+      "title": "Prompt injection",
+      "status": "covered",
+      "control": "One untrusted-content boundary. Uploaded documents and search results are scanned and fenced; a poisoned document is ingested and marked rather than refused, and cannot change the memo.",
+      "tests": [
+        "test_LLM01_a_poisoned_document_is_ingested_and_marked_not_refused",
+        "test_LLM01_governance_prose_is_not_a_false_positive",
+        "test_LLM01_injection_in_uploaded_content_is_detected",
+        "test_LLM01_the_fence_cannot_be_escaped_from_inside"
+      ]
+    },
+    {
+      "id": "LLM02",
+      "title": "Insecure output handling",
+      "status": "covered",
+      "control": "Nothing a model returns is executed. Memo claims must pass require_citations, and structured output is schema-validated before it is used.",
+      "tests": [
+        "test_LLM02_a_claim_whose_quote_does_not_resolve_is_refused",
+        "test_LLM02_no_endpoint_exists_that_executes_or_publishes"
+      ]
+    },
+    {
+      "id": "LLM03",
+      "title": "Training data poisoning",
+      "status": "not applicable",
+      "control": "COUNSEL trains nothing. It calls hosted or local models and stores no weights, so there is no training corpus to poison. Model provenance is recorded in docs/models.md instead.",
+      "tests": [
+        "test_LLM03_not_applicable_is_declared_rather_than_omitted"
+      ]
+    },
+    {
+      "id": "LLM04",
+      "title": "Model denial of service",
+      "status": "covered",
+      "control": "Request-count quotas per provider, a 180-token cap per turn, a bounded prompt that stops growing with the debate, and a kill switch checked before any provider is consulted.",
+      "tests": [
+        "test_LLM04_quota_exhaustion_degrades_and_never_hangs",
+        "test_LLM04_the_kill_switch_refuses_before_any_provider_is_touched",
+        "test_LLM04_turn_length_and_history_are_both_bounded"
+      ]
+    },
+    {
+      "id": "LLM05",
+      "title": "Supply chain vulnerabilities",
+      "status": "covered",
+      "control": "Dependencies pinned by uv.lock and package-lock.json. Every model is named with its licence in docs/models.md, and every data source with its licence and retrieval date in docs/datasets.md.",
+      "tests": [
+        "test_LLM05_dependencies_are_pinned_and_sources_are_licensed"
+      ]
+    },
+    {
+      "id": "LLM06",
+      "title": "Sensitive information disclosure",
+      "status": "covered",
+      "control": "Prompt-exfiltration attempts are flagged at the boundary. Secrets are read from the environment and never placed in a prompt. RBAC gates every write.",
+      "tests": [
+        "test_LLM06_a_viewer_holds_no_write_scope",
+        "test_LLM06_no_api_key_is_placed_in_a_prompt",
+        "test_LLM06_prompt_exfiltration_is_flagged"
+      ]
+    },
+    {
+      "id": "LLM07",
+      "title": "Insecure plugin design",
+      "status": "covered",
+      "control": "A declarative capability registry. Every tool declares side_effects and a test asserts False across the whole registry; a grant naming a tool that does not exist fails the suite.",
+      "tests": [
+        "test_LLM07_every_grant_names_a_tool_that_exists",
+        "test_LLM07_no_registered_tool_has_side_effects"
+      ]
+    },
+    {
+      "id": "LLM08",
+      "title": "Excessive agency",
+      "status": "covered",
+      "control": "No agent holds a tool that acts on the world. The five mandates hold search and ask; only the Facilitator can open or close a round.",
+      "tests": [
+        "test_LLM08_a_mandate_cannot_control_the_room",
+        "test_LLM08_the_tool_an_attack_asks_for_does_not_exist"
+      ]
+    },
+    {
+      "id": "LLM09",
+      "title": "Overreliance",
+      "status": "covered",
+      "control": "Claims that fail the citation gate are quarantined and labelled rather than dropped. A recommendation every seat dissents from is flagged on the memo's face. Brier scores are withheld below five outcomes.",
+      "tests": [
+        "test_LLM09_a_recommendation_the_whole_room_rejects_is_flagged",
+        "test_LLM09_calibration_is_withheld_below_the_minimum",
+        "test_LLM09_uncited_claims_are_quarantined_not_published"
+      ]
+    },
+    {
+      "id": "LLM10",
+      "title": "Model theft",
+      "status": "not applicable",
+      "control": "COUNSEL holds no proprietary weights. The local models are publicly downloadable and the hosted ones are the providers' own.",
+      "tests": [
+        "test_LLM10_not_applicable_is_declared_rather_than_omitted"
+      ]
+    }
+  ],
+  "n_covered": 8,
+  "n_not_applicable": 2,
+  "n_gaps": 0,
+  "gaps": [],
+  "n_assertions": 22,
+  "run_at": "2026-09-07T04:59:00Z"
+}
