@@ -91,8 +91,19 @@ def _fan_out(chain, session, task, instruction, model_cls, speakers=SEATING, on_
     return {seat: by_seat[seat] for seat in speakers if seat in by_seat}
 
 
-def collect_framings(session: Session, *, chain: LLMChain) -> dict[str, Framing]:
-    """Define — each seat proposes the problem it thinks is worth solving."""
+def collect_framings(
+    session: Session,
+    *,
+    chain: LLMChain,
+    on_progress: Callable[[str, Framing], None] | None = None,
+) -> dict[str, Framing]:
+    """Define — each seat proposes the problem it thinks is worth solving.
+
+    `on_progress(seat, framing)` fires as each seat answers, in completion order.
+    The returned mapping stays in seating order: what a caller streams to a
+    browser may arrive in any order, but what gets stored must not depend on
+    which model finished first.
+    """
     return _fan_out(
         chain,
         session,
@@ -100,10 +111,16 @@ def collect_framings(session: Session, *, chain: LLMChain) -> dict[str, Framing]
         "Propose ONE 'How might we...' framing of this decision from your mandate's point of "
         "view. Keep why_it_matters under 60 words. Do not propose a solution.",
         Framing,
+        on_progress=on_progress,
     )
 
 
-def collect_ideas(session: Session, *, chain: LLMChain) -> dict[str, Idea]:
+def collect_ideas(
+    session: Session,
+    *,
+    chain: LLMChain,
+    on_progress: Callable[[str, Idea], None] | None = None,
+) -> dict[str, Idea]:
     """Ideate — divergence, under the no-critique rule the Auditor enforces."""
     return _fan_out(
         chain,
@@ -112,6 +129,7 @@ def collect_ideas(session: Session, *, chain: LLMChain) -> dict[str, Idea]:
         "Propose ONE idea. Do not critique anyone. If you are building on another seat's "
         "idea, name that seat in builds_on. Keep the sketch under 80 words.",
         Idea,
+        on_progress=on_progress,
     )
 
 

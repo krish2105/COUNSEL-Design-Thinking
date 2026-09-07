@@ -159,6 +159,35 @@ export const streamScores = (
     signal,
   );
 
+export type Framing = { hmw: string; why_it_matters: string; whose_problem: string };
+export type Idea = { title: string; sketch: string; builds_on: string | null };
+
+export type StageFrame<T> =
+  | { kind: "stage_open"; stage: string; kind_of: string; n_seats: number }
+  | ({ kind: "framing" | "idea"; seat: string } & T)
+  | { kind: "done"; stage: string; framings?: Record<string, Framing>; ideas?: Record<string, Idea> };
+
+/* Define and Ideate stream for the same reason scoring and the memo do: they
+ * are five-seat fan-outs, measured at 21.7s and 19.4s, which is under the 30s
+ * gateway ceiling only because the model happens to be fast. */
+export const streamFramings = (
+  sessionId: string,
+  onFrame: (f: StageFrame<Framing>) => void,
+  signal?: AbortSignal,
+) =>
+  stream(
+    `/sessions/${sessionId}/framings/stream`,
+    (f) => onFrame(f as StageFrame<Framing>),
+    {},
+    signal,
+  );
+
+export const streamIdeas = (
+  sessionId: string,
+  onFrame: (f: StageFrame<Idea>) => void,
+  signal?: AbortSignal,
+) => stream(`/sessions/${sessionId}/ideas/stream`, (f) => onFrame(f as StageFrame<Idea>), {}, signal);
+
 export type MemoFrame =
   | { kind: "memo_open"; n_evidence: number; n_options: number }
   | { kind: "drafted"; recommendation: string; margin: number; n_cited: number;

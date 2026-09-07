@@ -13,7 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from services.api import deps
 from services.api.core.rbac import Scope, require
-from services.api.core.stream import from_iterable
+from services.api.core.stream import from_iterable, sse
 from services.api.rag.retrieve import retrieve
 
 router = APIRouter(tags=["research"])
@@ -75,7 +75,7 @@ async def search_stream(query: Query) -> EventSourceResponse:
     """The SSE seam. Phase C's debate streams turns through this same shape."""
     chain = deps.search()
     results = chain.search(query.q, limit=query.limit)
-    return EventSourceResponse(
+    return sse(
         from_iterable(
             "result",
             [

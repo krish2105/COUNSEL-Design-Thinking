@@ -1,0 +1,46 @@
+{
+  "measurement": "Whether the streaming endpoints actually stream, and how close the one-shot stages sit to the 30-second gateway ceiling",
+  "date": "2026-09-07",
+  "model": "ollama qwen3:8b",
+  "seats_per_call": 5,
+  "gateway_ceiling_seconds": 30,
+
+  "why_framings_and_ideas_now_stream": {
+    "question": "Define and Ideate are five-seat fan-outs like scoring (~103s) and the memo (~41s), but measured comfortably under the ceiling. Was 'comfortably' true?",
+    "samples_seconds": {
+      "framings_synchronous": [23.167, 24.674, 22.360, 22.158, 23.838],
+      "framings_streamed": [36.427, 23.017, 21.011, 25.820],
+      "ideas_synchronous": [22.497],
+      "ideas_streamed": [33.469]
+    },
+    "typical_range_seconds": [21.0, 25.8],
+    "max_observed_seconds": 36.427,
+    "n_samples": 11,
+    "n_over_ceiling": 2,
+    "reading": "The median is inside the ceiling and the tail is not. Two of eleven samples exceeded 30s, both under ordinary machine contention. A route that fails only when the box is busy fails intermittently and reads as a network fault, which is harder to diagnose than one that fails every time."
+  },
+
+  "two_defects_found_while_verifying": [
+    {
+      "defect": "the server collected every seat and emitted them together",
+      "where": "the streaming generators, all of them",
+      "how_found": "timing each SSE frame's arrival instead of timing the whole response",
+      "before_seconds": {"stage_open": 0.04, "framing_coo": 28.20, "framing_cmo": 28.20, "framing_cfo": 28.20, "framing_ethics": 28.20, "framing_devil": 28.20, "done": 28.20},
+      "after_seconds": {"stage_open": 0.02, "framing_coo": 4.74, "framing_cmo": 9.38, "framing_cfo": 12.96, "framing_devil": 16.97, "framing_ethics": 23.08, "done": 23.08},
+      "note": "The batched version still fixed the timeout, because a proxy only needs the first byte. It just never streamed. The seats finish nearly twenty seconds apart, which batching hid completely.",
+      "fix": "services/api/routers/decisions.py::Progressive, pinned by tests/api/test_progressive.py"
+    },
+    {
+      "defect": "the Next.js proxy gzipped every event stream, and gzip buffers",
+      "where": "every SSE endpoint in the application",
+      "how_found": "reading the raw fetch body inside a real browser; curl had streamed correctly because curl does not request gzip by default",
+      "browser_before_seconds": {"response_headers": 0.01, "entire_body_including_every_frame": 33.60},
+      "browser_after_seconds": {"stage_open": 0.01, "framing_1": 6.46, "framing_2": 13.53, "framing_3": 18.16, "framing_4": 25.21, "framing_5": 30.55, "content_encoding": "identity"},
+      "board_ui_after_seconds": [4.9, 14.2, 22.5, 29.3],
+      "note": "This was total and it predates every streaming feature here. No stream in this application had ever streamed to a browser: the debate turns, scoring, the memo and both stages all arrived in one packet at the end. Every hand test used curl and looked correct.",
+      "fix": "apps/web/next.config.ts compress:false, plus Content-Encoding: identity from services/api/core/stream.py::SSE_HEADERS. The upstream header alone is not enough — Next strips it and re-compresses."
+    }
+  ],
+
+  "what_this_does_not_show": "That streaming is faster. It is not — streamed and synchronous samples span the same range, because the work is identical. Streaming changes when the first byte arrives, not the last, and it is the first byte that keeps a proxy from giving up."
+}

@@ -26,7 +26,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from services.api import deps
 from services.api.core.rbac import Scope, require
-from services.api.core.stream import event
+from services.api.core.stream import event, sse
 from services.api.crew import store
 from services.api.crew.auditor import audit
 from services.api.crew.facilitator import Facilitator
@@ -282,7 +282,7 @@ async def run_round_stream(session_id: str) -> EventSourceResponse:
             },
         )
 
-    return EventSourceResponse(frames())
+    return sse(frames())
 
 
 def _describe(session) -> dict[str, object]:

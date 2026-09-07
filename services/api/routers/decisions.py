@@ -8,6 +8,9 @@ user does, with the file, after reading it.
 
 from __future__ import annotations
 
+import asyncio
+import queue
+
 import anyio
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -15,11 +18,12 @@ from sse_starlette.sse import EventSourceResponse
 
 from services.api import deps
 from services.api.core.rbac import Scope, require
-from services.api.core.schemas import DissentDraft, Score
-from services.api.core.stream import event
+from services.api.core.schemas import Score
+from services.api.core.stream import event, sse
 from services.api.crew import ledger as ledger_mod
 from services.api.crew import store
 from services.api.crew.counterfactual import flips, robustness, sensitivity
+from services.api.crew.mandate import SEATING
 from services.api.crew.memo import attach_dissents, build_memo, render_markdown
 from services.api.crew.session import STAGE_RULES, Stage
 from services.api.crew.stages import (
@@ -32,6 +36,78 @@ from services.api.crew.stages import (
 )
 
 router = APIRouter(prefix="/sessions/{session_id}", tags=["decisions"])
+
+
+class Progressive:
+    """A blocking five-seat fan-out, iterated as it reports rather than after it finishes.
+
+    Every fan-out here takes an `on_progress` callback that fires on the pool's
+    worker threads, while the generator feeding the client runs on the event
+    loop. This carries items across that boundary on a plain queue.Queue, which
+    is the thread-safe primitive already in the standard library.
+
+    WHY THIS EXISTS RATHER THAN A LIST
+    ----------------------------------
+    The obvious version collects into a list and emits it once the blocking call
+    returns. Measured, that produced:
+
+        0.04s  stage_open
+        28.20s framing coo, cmo, cfo, ethics, devil
+        28.20s done
+
+    which fixes the timeout — a proxy only needs the first byte — while not
+    actually streaming anything. With this:
+
+        0.02s  stage_open
+        4.74s  framing coo
+        9.38s  framing cmo
+        12.96s framing cfo
+        16.97s framing devil
+        23.08s framing ethics, done
+
+    The seats finish nearly twenty seconds apart, which the batched version hid
+    completely. Three endpoints claimed in their docstrings to show the room
+    thinking; none of them did until this existed.
+
+    `result` is the collector's own return value, read after iteration ends. It
+    is in SEATING order, so what gets stored never depends on who was quickest —
+    only what gets displayed does.
+    """
+
+    #: How often the loop looks for a finished seat. Short enough that a turn
+    #: appears promptly, long enough that a mostly-idle wait is not a spin.
+    POLL_SECONDS = 0.05
+
+    def __init__(self, run) -> None:
+        self._run = run
+        self.result = None
+
+    async def __aiter__(self):
+        pending: queue.Queue = queue.Queue()
+        finished = object()
+
+        def work():
+            try:
+                return self._run(lambda *args: pending.put(args))
+            finally:
+                # In a finally, so a raising fan-out still releases the loop
+                # below instead of hanging the request until the client gives up.
+                pending.put(finished)
+
+        task = asyncio.ensure_future(anyio.to_thread.run_sync(work))
+        while True:
+            try:
+                item = pending.get_nowait()
+            except queue.Empty:
+                await anyio.sleep(self.POLL_SECONDS)
+                continue
+            if item is finished:
+                break
+            yield item
+
+        # Awaited after the queue is drained, so a failure surfaces here with
+        # every seat that did succeed already delivered.
+        self.result = await task
 
 
 class EvidenceIn(BaseModel):
@@ -81,6 +157,75 @@ def ideas(session_id: str) -> dict[str, object]:
     result = collect_ideas(session, chain=deps.llm())
     store.save_artefacts(session_id, "idea", result, conn=deps.db())
     return {"stage": "Ideate", "ideas": {k: v.model_dump() for k, v in result.items()}}
+
+
+def _stage_stream(
+    session_id: str,
+    *,
+    stage: Stage,
+    kind: str,
+    collect,
+    label: str,
+) -> EventSourceResponse:
+    """The streaming half of a one-shot stage: Define and Ideate.
+
+    Both are the same five-seat fan-out as scoring and the memo, and measured on
+    qwen3:8b they take 21.7s and 19.4s. That is under the 30-second ceiling every
+    gateway between a browser and this process imposes — but only just, and the
+    margin is the model's speed, not a property of the design. A larger model or
+    a slower host puts them over it, and the failure mode is the one the memo
+    already demonstrated: a 500 at exactly 30s from a proxy, while the endpoint
+    itself completes fine and says so in the logs.
+
+    Written once rather than twice because the two differ only in stage, artefact
+    kind and collector. Two copies of a streaming generator would drift, and the
+    thing that drifts first is which one remembers to save its artefacts.
+    """
+    session = _session(session_id)
+    session.stage = stage
+    conn = deps.db()
+
+    async def frames():
+        yield event("stage_open", {"stage": label, "kind": kind, "n_seats": len(SEATING)})
+
+        fan = Progressive(lambda progress: collect(session, chain=deps.llm(), on_progress=progress))
+        async for seat, obj in fan:
+            # Arrival order, which is the honest order for a live view.
+            yield event(kind, {"seat": seat, **obj.model_dump()})
+        result = fan.result
+
+        store.save_artefacts(session_id, kind, result, conn=conn)
+        yield event(
+            "done",
+            {
+                "stage": label,
+                f"{kind}s": {k: v.model_dump() for k, v in result.items()},
+            },
+        )
+
+    return sse(frames())
+
+
+@router.post("/framings/stream", dependencies=[Depends(require(Scope.SESSION_WRITE))])
+async def framings_stream(session_id: str) -> EventSourceResponse:
+    return _stage_stream(
+        session_id,
+        stage=Stage.DEFINE,
+        kind="framing",
+        collect=collect_framings,
+        label="Define",
+    )
+
+
+@router.post("/ideas/stream", dependencies=[Depends(require(Scope.SESSION_WRITE))])
+async def ideas_stream(session_id: str) -> EventSourceResponse:
+    return _stage_stream(
+        session_id,
+        stage=Stage.IDEATE,
+        kind="idea",
+        collect=collect_ideas,
+        label="Ideate",
+    )
 
 
 @router.post("/scores", dependencies=[Depends(require(Scope.SESSION_WRITE))])
@@ -145,12 +290,14 @@ async def scores_stream(session_id: str, body: ScoreRequest) -> EventSourceRespo
     30 seconds while the API completes in 103. Streaming keeps the connection
     alive AND gives the person watching something to look at, which is the
     reason to prefer it over raising a timeout somewhere.
+
+    The second half of that was untrue until Progressive existed: this collected
+    every score and emitted them together at the end. See its docstring.
     """
     session = _session(session_id)
     session.stage = Stage.TEST
     conn = deps.db()
     evidence = store.load_evidence(session_id, conn=conn)
-    seen: list[tuple[str, str, Score]] = []
 
     async def frames():
         yield event(
@@ -158,18 +305,14 @@ async def scores_stream(session_id: str, body: ScoreRequest) -> EventSourceRespo
             {"options": body.options, "n_seats": 5, "evidence": [e.evidence_id for e in evidence]},
         )
 
-        result = await anyio.to_thread.run_sync(
-            lambda: collect_scores(
-                session,
-                body.options,
-                evidence,
-                chain=deps.llm(),
-                on_progress=lambda option, seat, score: seen.append((option, seat, score)),
+        fan = Progressive(
+            lambda progress: collect_scores(
+                session, body.options, evidence, chain=deps.llm(), on_progress=progress
             )
         )
-
-        for option, seat, score in seen:
+        async for option, seat, score in fan:
             yield event("scored", {"option": option, "seat": seat, **score.model_dump()})
+        result = fan.result
 
         store.save_artefacts(session_id, "score", result, conn=conn)
         for seat, seat_scores in result.items():
@@ -182,7 +325,7 @@ async def scores_stream(session_id: str, body: ScoreRequest) -> EventSourceRespo
         yield event("ranked", {"ranked": [r.__dict__ for r in ranked]})
         yield event("done", {"n_scores": sum(len(v) for v in result.values())})
 
-    return EventSourceResponse(frames())
+    return sse(frames())
 
 
 @router.get("/counterfactual", dependencies=[Depends(require(Scope.READ))])
@@ -252,7 +395,8 @@ async def memo_stream(session_id: str) -> EventSourceResponse:
     driven through a browser on a session slow enough to cross it.
 
     Streaming also makes the wait legible: the recommendation appears as soon as
-    it is drafted, and each seat's dissent lands as that seat answers.
+    it is drafted, and each seat's dissent lands as that seat answers — which
+    became true only once Progressive replaced the collect-then-emit version.
     """
     session = _session(session_id)
     session.stage = Stage.DECIDE
@@ -260,7 +404,6 @@ async def memo_stream(session_id: str) -> EventSourceResponse:
     scores = _stored_scores(session_id)
     evidence = store.load_evidence(session_id, conn=conn)
     options = {score.option for seat_scores in scores.values() for score in seat_scores}
-    seen: list[tuple[str, DissentDraft]] = []
 
     async def frames():
         yield event("memo_open", {"n_evidence": len(evidence), "n_options": len(options)})
@@ -281,22 +424,20 @@ async def memo_stream(session_id: str) -> EventSourceResponse:
             },
         )
 
-        dissents = await anyio.to_thread.run_sync(
-            lambda: collect_dissents(
-                session,
-                built.recommendation,
-                chain=deps.llm(),
-                on_progress=lambda seat, draft: seen.append((seat, draft)),
+        fan = Progressive(
+            lambda progress: collect_dissents(
+                session, built.recommendation, chain=deps.llm(), on_progress=progress
             )
         )
-        for seat, draft in seen:
+        async for seat, draft in fan:
             yield event("dissent", {"seat": seat, "agrees": draft.agrees})
+        dissents = fan.result
 
         attach_dissents(built, dissents)
         store.save_artefacts(session_id, "dissent", dissents, conn=conn)
         yield event("done", _memo_payload(built))
 
-    return EventSourceResponse(frames())
+    return sse(frames())
 
 
 @router.post("/outcome", dependencies=[Depends(require(Scope.SESSION_WRITE))])

@@ -159,6 +159,62 @@ def sse(response) -> list[tuple[str, dict]]:
     return frames
 
 
+@pytest.mark.parametrize(
+    "kind,path,label",
+    [("framing", "framings", "Define"), ("idea", "ideas", "Ideate")],
+)
+def test_the_one_shot_stages_stream_each_seat_as_it_answers(client, session, kind, path, label):
+    """Define and Ideate are the same five-seat fan-out as scoring and the memo.
+
+    Measured across eleven runs at 21.0s-36.4s for the same call
+    (docs/results/E2-stage-latency.json). The 30-second gateway ceiling sits
+    inside that range, so whether a synchronous version worked depended on how
+    busy the machine was.
+    """
+    r = client.post(f"/sessions/{session}/{path}/stream", headers=as_("analyst"))
+    assert r.status_code == 200
+
+    frames = sse(r)
+    kinds = [name for name, _ in frames]
+    assert kinds[0] == "stage_open", kinds
+    assert kinds[-1] == "done", kinds
+    assert kinds.count(kind) == 5, "every seat must be streamed, not just the last"
+
+    seats = [data["seat"] for name, data in frames if name == kind]
+    assert len(set(seats)) == 5
+
+    # The terminal frame carries what the synchronous route returns, so the two
+    # cannot drift into disagreeing about the same stage.
+    done = frames[-1][1]
+    assert done["stage"] == label
+    assert set(done[f"{kind}s"]) == set(seats)
+
+
+@pytest.mark.parametrize("path", ["framings", "ideas"])
+def test_a_streamed_stage_is_persisted_in_seating_order(client, session, path):
+    """What is STORED must not depend on which model finished first.
+
+    Frames are emitted in arrival order because that is what makes the wait
+    legible; the artefact is written from the collector's return value, which
+    _fan_out fixes to seating order. Reading it back is the only way to tell
+    those two apart.
+    """
+    from services.api.crew.mandate import SEATING
+
+    client.post(f"/sessions/{session}/{path}/stream", headers=as_("analyst"))
+    stored = client.get(f"/sessions/{session}/artefacts", headers=as_("viewer")).json()
+    kind = "framing" if path == "framings" else "idea"
+    assert list(stored["artefacts"][kind]) == list(SEATING)
+
+
+@pytest.mark.parametrize("path", ["framings", "ideas"])
+def test_a_viewer_cannot_stream_a_stage(client, session, path):
+    """A stream is a second door to the same room and needs the same lock."""
+    assert (
+        client.post(f"/sessions/{session}/{path}/stream", headers=as_("viewer")).status_code == 403
+    )
+
+
 def test_the_memo_streams_its_two_phases_and_ends_with_the_whole_memo(client, session):
     """The Report tab's one button, over the wire.
 
@@ -226,15 +282,19 @@ def test_every_slow_write_has_a_streaming_sibling():
     # deliberately deleted stream. A test that cannot fail is worse than none.
     paths = set(app.openapi()["paths"])
 
+    # Every endpoint that fans a request out to all five seats.
+    #
+    # Scores (~103s) and memo (~41s) were over the ceiling every time. Framings
+    # and ideas straddle it: eleven samples in docs/results/E2-stage-latency.json
+    # run 21.0s-36.4s for the same call, with two over 30s. A route that fails
+    # only when the box is busy fails intermittently and reads as a network
+    # fault, which is harder to diagnose than one that fails every time.
     slow = {
-        "/sessions/{session_id}/scores",  # five seats x two options, ~103s measured
-        "/sessions/{session_id}/memo",  # draft + five dissents, ~41s measured
+        "/sessions/{session_id}/scores",
+        "/sessions/{session_id}/memo",
+        "/sessions/{session_id}/framings",
+        "/sessions/{session_id}/ideas",
     }
-    # /framings and /ideas are the same five-seat fan-out shape and are NOT in
-    # that set, because measured on qwen3:8b they are 21.7s and 19.4s — under
-    # the ceiling, but not by much. A slower host or a larger model puts them
-    # over it, and the failure would look exactly like the memo's did. Recorded
-    # here rather than left as an assumption someone has to rediscover.
     # Asserted to EXIST before being checked, so renaming one cannot quietly
     # turn this back into a tautology.
     assert slow <= paths, f"these endpoints moved; update this list: {sorted(slow - paths)}"

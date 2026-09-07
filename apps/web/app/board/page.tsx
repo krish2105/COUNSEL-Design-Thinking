@@ -10,11 +10,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { RailEntry, type Seat as SeatId } from "@/components/Rail";
 import { useLang } from "@/components/Providers";
-import { api } from "@/lib/api";
+import {
+  api,
+  streamFramings,
+  streamIdeas,
+  type Framing,
+  type Idea,
+} from "@/lib/api";
 import { currentSession } from "@/lib/session";
-
-type Framing = { hmw: string; why_it_matters: string; whose_problem: string };
-type Idea = { title: string; sketch: string; builds_on: string | null };
 
 export default function Board() {
   const { t } = useLang();
@@ -39,13 +42,38 @@ export default function Board() {
     void load();
   }, [load]);
 
+  /* Streamed, so each seat appears as it answers.
+   *
+   * Five seats is ~21.7s for framings and ~19.4s for ideas on qwen3:8b — under
+   * the 30-second ceiling every gateway imposes, but only because the model is
+   * fast. A larger model or a slower host puts a synchronous response over it,
+   * and the failure is the one the Report tab already demonstrated: 500 at
+   * exactly 30s from the proxy while the endpoint completes fine.
+   *
+   * Frames arrive in completion order, which is the point — the room visibly
+   * fills. The load() at the end re-reads the stored artefact, which is written
+   * in seating order, so the settled view is stable regardless of who was
+   * quickest. */
   async function run(kind: "framings" | "ideas") {
     if (!id) return;
     setBusy(kind);
     setError(null);
     try {
-      if (kind === "framings") await api.framings(id);
-      else await api.ideas(id);
+      if (kind === "framings") {
+        setFramings({});
+        await streamFramings(id, (frame) => {
+          if (frame.kind !== "framing") return;
+          const { kind: _kind, seat, ...framing } = frame;
+          setFramings((prev) => ({ ...prev, [seat]: framing as Framing }));
+        });
+      } else {
+        setIdeas({});
+        await streamIdeas(id, (frame) => {
+          if (frame.kind !== "idea") return;
+          const { kind: _kind, seat, ...idea } = frame;
+          setIdeas((prev) => ({ ...prev, [seat]: idea as Idea }));
+        });
+      }
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -108,7 +136,10 @@ export default function Board() {
           two buttons, which on a wide screen is a page-height of blank — it reads
           as broken rather than as "the room has not been asked yet". Every other
           surface here declares its own emptiness; this one did not. */}
-      {!error && Object.keys(framings).length === 0 && Object.keys(ideas).length === 0 ? (
+      {!error &&
+      !busy &&
+      Object.keys(framings).length === 0 &&
+      Object.keys(ideas).length === 0 ? (
         <p className="method">{t.board.empty}</p>
       ) : null}
 
