@@ -60,3 +60,30 @@ test("the chamber renders in the deployed browser", async ({ page }) => {
 
   await expect(page.locator(".room-bar")).toContainText("sealed");
 });
+
+test("the Board produces framings and ideas on the deployed site", async ({ page }) => {
+  /* The regression this exists for: deps.llm() terminated its chain with a bare
+   * StubProvider(), which cannot answer structured() at all. With no provider
+   * keys the deployed service runs entirely on that stub, so this page returned
+   * 500 for every framing while the Room worked and every local test passed. */
+  test.setTimeout(240_000);
+
+  // The Board needs a session, and the Room is where one is opened.
+  await page.goto(`${LIVE}/room`);
+  await page.getByRole("button", { name: "Open the room" }).click();
+  await expect(page.locator(".room-bar")).toBeVisible({ timeout: 120_000 });
+
+  await page.goto(`${LIVE}/board`);
+
+  // An empty Board must SAY it is empty rather than render a page of blank.
+  await expect(page.getByText(/Nothing on the board yet/i)).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole("button", { name: "Ask for framings" }).click();
+  await expect(page.locator(".entries .rail-entry, .entries > *").first()).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.locator(".erratum")).toHaveCount(0);
+
+  // Five seats, five framings — a partial answer is a failure, not a degradation.
+  expect(await page.locator(".entries > *").count()).toBe(5);
+});
