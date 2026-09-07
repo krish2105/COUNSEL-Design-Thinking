@@ -1,6 +1,6 @@
 # COUNSEL, scored as a real MVP
 
-**Total: 87 / 100.**
+**Total: 86 / 100.**
 
 The rubric is below, the evidence for each mark is named, and every deduction
 says what would recover it. This is scored as a *deployed product a stranger
@@ -15,15 +15,15 @@ part of being honest about the number.
 |---|---|---:|---:|---|
 | 1 | Does it work end to end? | 15 | **14** | |
 | 2 | Engineering quality | 15 | **14** | |
-| 3 | Testing and verification | 15 | **13** | |
+| 3 | Testing and verification | 15 | **12** | |
 | 4 | Honesty and calibration | 10 | **9** | |
 | 5 | Security posture | 10 | **9** | |
 | 6 | Design and interface | 10 | **8** | |
 | 7 | Documentation | 10 | **9** | |
 | 8 | **Deployment and operability** | 15 | **11** | |
 | 9 | Course fit (MGT 204) | 10 | **9** | |
-| | Subtotal (out of 110) | | **96** | |
-| | *Normalised to 100* | | **87** | |
+| | Subtotal (out of 110) | | **95** | |
+| | *Normalised to 100* | | **86** | |
 
 ---
 
@@ -39,6 +39,15 @@ of the main flow — a user has to know to click them. The seven stages are
 enforced by schemas and the Auditor, but the app does not walk you through them
 in order.
 
+**A limit of that evidence, worth stating here rather than only under testing.**
+The journey asserts what is on the screen at the end, never when it got there.
+That is why it passed for the entire period in which no event stream reached a
+browser incrementally — the data all arrived and the assertions all held, while
+the feature that was supposed to let you watch the room think delivered its
+whole transcript in one packet. The mark stays at 14 because the product works
+now and the deduction above is about flow rather than function, but "the journey
+is green" means less than it looks like it means.
+
 ## 2 · Engineering quality — 14/15
 
 **Evidence.** Three provider chains built on the same shape (inference, search,
@@ -53,9 +62,9 @@ weakest of the four; it is shipped with its weakness recorded in a comment rathe
 than fixed. `deps.py` uses module-level `lru_cache` singletons, which is fine for
 one operator and would need rethinking for concurrent users.
 
-## 3 · Testing and verification — 13/15
+## 3 · Testing and verification — 12/15
 
-**Evidence.** 421 Python tests and 104 Playwright tests across desktop and
+**Evidence.** 431 Python tests and 104 Playwright tests across desktop and
 mobile, plus a live suite that drives the deployed URL over the public internet.
 The whole local suite runs with **no model, no key and no network** — verified
 by pointing Ollama at a dead host: exit 0.
@@ -69,30 +78,59 @@ aborting `make check` *after* all tests passed. Each is pinned by a regression
 test that fails without the fix — the RRF one was verified by restoring the bug
 and watching the test go red.
 
-**Why not 15.** Two marks, for the same root cause: **the suite tested a better
-machine than the one the product runs on.**
+**Why not 15.** Three marks, all one root cause: **the suite keeps testing a
+better machine than the one the product runs on.**
 
-Every test built its provider chain with `phase_c_stub()`. `deps.llm()` — the
-chain the service actually builds — terminated with a bare `StubProvider()`,
-which cannot answer `structured()` at all. With no provider keys the deployed
-service runs entirely on that terminal stub, so **every framing, idea, score and
-memo on the live site returned 500** while the Room worked, because a debate turn
-is `complete()` and a framing is `structured()`. Roughly half the deployed
-application was dead, and 403 tests were green the whole time. It was found by a
-person opening the Board tab, which is the worst way to find anything.
+**One — the provider chain.** Every test built its chain with `phase_c_stub()`.
+`deps.llm()`, the chain the service actually builds, terminated with a bare
+`StubProvider()` that cannot answer `structured()` at all. With no provider keys
+the deployed service runs entirely on that stub, so **every framing, idea, score
+and memo on the live site returned 500** while the Room worked, because a debate
+turn is `complete()` and a framing is `structured()`. Roughly half the deployed
+application was dead and 403 tests were green throughout. Found by a person
+opening the Board tab.
 
-The second mark is the same lesson in a different place: no Python test drove
-`/scores/stream` or `/memo/stream` at all. `POST /memo` takes ~41 seconds and
-returned 500 at exactly 30 through the Next rewrite, so the Report tab's one
-button was broken in the product while the endpoint it called was healthy.
+**Two — the streaming endpoints.** No Python test drove `/scores/stream` or
+`/memo/stream` at all. `POST /memo` takes ~41 seconds and returned 500 at exactly
+30 through the Next rewrite, so the Report tab's one button was broken in the
+product while the endpoint it called was healthy.
 
-Both are now pinned. `tests/invariants/test_production_chain.py` exercises
-`deps.llm()` itself with no keys and no Ollama — the deployed configuration —
-and 10 of its 11 tests fail against the shipped code. The streaming invariant
-fails if a multi-seat endpoint gains no `/stream` sibling, and its own first
-version was a tautology that passed against a deleted route, so it is asserted
-red in both directions. The marks come back when that discipline has survived a
-few more changes, not merely because the tests exist.
+**Three — nothing ever streamed.** This is the worst of them, and it arrived on
+the very change after the paragraph below first said the marks would return once
+the discipline had survived a few. Two independent defects, both invisible:
+
+- The server collected every seat and emitted them together. Timing each frame
+  rather than the response: `stage_open` at 0.04s, then all five seats and
+  `done` together at 28.20s. That still satisfies a proxy, which only needs the
+  first byte — so it worked, and it did not stream.
+- Next compresses proxied responses whenever the client asks, and a browser
+  always asks, so `text/event-stream` came back `Content-Encoding: gzip` and
+  gzip buffers. In a real browser: headers at 0.01s, then **the entire body,
+  every frame, at 33.60s.**
+
+The consequence is not a rough edge. **No stream in this application had ever
+streamed to a browser** — not the debate turns, not scoring, not the memo. "Watch
+the room think" was one of the four extras chosen at the start of the project,
+and it has never worked in the product. 104 Playwright tests in a real browser
+passed over it, because every one of them asserts final state and none asserts
+when anything arrived. Every hand check used `curl`, which does not request gzip
+by default and therefore streamed correctly every time. Numbers in
+[`E2-stage-latency.json`](results/E2-stage-latency.json).
+
+All three are now pinned, each by a test that fails against the code as it
+shipped: `tests/invariants/test_production_chain.py` exercises `deps.llm()` in
+the deployed configuration (10 of 11 red), the streaming invariant requires every
+multi-seat endpoint to have a `/stream` sibling, `tests/api/test_progressive.py`
+proves incremental emission by blocking the producer until the consumer has
+received an earlier item (2 of 4 red), and the live suite asserts an event stream
+is never `gzip`, read to completion so a buffering proxy cannot pass on headers
+alone.
+
+The marks are not withheld because these bugs happened. They are withheld
+because the suite has now missed the same class of thing three times, and the
+thing it misses is always the same: a difference between the environment the
+test constructs and the environment a user meets. That is not fixed by three
+more tests.
 
 ## 4 · Honesty and calibration — 9/10
 
@@ -246,9 +284,9 @@ it exists as rules without a dedicated surface.
 
 ## The score has only ever gone down
 
-Predicted **92**, then **90**, then **88**, now **87**. Every revision was
-downward and every one was caused by looking harder, which is the pattern worth
-recording.
+Predicted **92**, then **90**, **88**, **87**, now **86**. Every revision was
+downward and every one was caused by looking harder rather than by anything
+breaking.
 
 | | | Why |
 |---|---:|---|
@@ -256,6 +294,7 @@ recording.
 | Actually deployed | 90 | It also subtracted capability |
 | After the Board broke | 88 | The suite tested a better machine than production |
 | After the citation gate | 87 | A public page claimed more than its test supported |
+| After the streams | 86 | The same testing gap, a third time, hiding a whole feature |
 
 **92 → 90.** Criterion 8 reached 11, not 14. MiniLM does not fit a 512 MB
 instance, so the live instance has no embedder and searches lexically only — the
@@ -268,29 +307,49 @@ seven stages — are exactly as true as they were.
 **90 → 88.** Every test built its provider chain with `phase_c_stub()` while
 `deps.llm()` built a bare `StubProvider()` that cannot answer `structured()` at
 all. With no keys the deployed service runs entirely on that stub, so every
-framing, idea, score and memo returned 500 while 403 tests stayed green. Found by
-a person opening a tab.
+framing, idea, score and memo returned 500 while 403 tests stayed green.
 
 **88 → 87.** The Security tab claimed "Its claim cannot reach the memo" while
 testing only the uncited case, and a real memo cited the attacker's own sentence
 into its Reasoning section. An honesty mark, not a security one — the gate got
 stronger, and the two deductions under criterion 5 were never about this.
 
-None of these were found by the test suite. Two were found by looking at the
-screen and one by reading a log. That is the most useful thing this scorecard
-knows about itself: **the suite is good at defending decisions it already
-understands, and has caught nothing that came from a wrong assumption about the
-world outside the process.** Each is now pinned by a test that fails against the
-code as it shipped, which converts three specific assumptions and leaves the
-general lesson standing.
+**87 → 86.** No event stream had ever reached a browser incrementally, because
+the server emitted its frames in one batch and the proxy gzipped what was left.
+"Watch the room think" was one of the four extras chosen at the start and has
+never worked in the product. Testing, a third time, for the third variant of one
+root cause.
 
-## The three things worth doing next
+## What the pattern actually says
 
-1. **Paste two keys.** `GEMINI_API_KEY` and `GROQ_API_KEY` on the Render
-   service. This is the highest-value action available: it restores real
-   inference *and* the cross-lingual retrieval the deployed instance currently
-   cannot do, and it is worth roughly 3 marks for about two minutes of work.
-2. **Bind RBAC to real identities.** Turns authorisation into security.
-3. **Log five outcomes.** The calibration ledger is the most distinctive idea in
-   the project and it currently has nothing to show — `MIN_OUTCOMES = 5` is the
-   gate, and the ledger stays honestly empty until it is met.
+Four defects, none found by the test suite. Two were found by looking at the
+screen, one by reading a log, one by timing individual frames instead of a whole
+response. Every one of them was the same shape: **a difference between the
+environment a test constructs and the environment a user meets** — a stub that
+answers more than the real one, a proxy the tests do not go through, a `curl`
+that does not send the header a browser always sends.
+
+The suite is genuinely good at defending decisions the project already
+understands, and it has caught nothing that came from a wrong assumption about
+the world outside the process. Each of the four is now pinned by a test that
+fails against the code as it shipped, which converts four specific assumptions.
+It does not convert the general one, and pretending otherwise is how the fifth
+gets shipped.
+
+## What is worth doing next
+
+1. **Paste two keys.** `GEMINI_API_KEY` and `GROQ_API_KEY` on the Render service.
+   The highest-value action available: it restores real inference *and* the
+   cross-lingual retrieval the deployed instance cannot currently do. Worth
+   roughly 3 marks for about two minutes of work.
+2. **Run the live suite on every deploy.** This is the one that attacks the
+   pattern above rather than its instances. `npm run smoke:live` already drives
+   the deployed URL in a real browser, through the real proxy, with the real
+   provider chain — which is precisely the environment all four missed defects
+   lived in. It is a job in the existing CI workflow, and it is the difference
+   between a suite that defends decisions and one that checks reality.
+3. **Bind RBAC to real identities.** Roles come from a request header the caller
+   asserts about itself. Turns authorisation into security.
+4. **Log five outcomes.** The calibration ledger is the most distinctive idea
+   here and has nothing to show — `MIN_OUTCOMES = 5` is the gate, and the ledger
+   stays honestly empty until it is met.

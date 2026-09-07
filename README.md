@@ -146,10 +146,10 @@ Phase E: the harness and the artefacts.
 
 ## Score
 
-**87 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
+**86 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
 
-Predicted 92, then 90, then 88, now 87. **Every revision has been downward**, and
-each one came from looking harder rather than from anything breaking:
+Predicted 92, then 90, 88, 87, now 86. **Every revision has been downward**, and
+each came from looking harder rather than from anything breaking:
 
 - **92 → 90** — the embedding model does not fit a 512 MB free instance, so the
   live instance searches lexically and cannot match across languages. Deploying
@@ -161,11 +161,18 @@ each one came from looking harder rather than from anything breaking:
   while testing only the easy half of that, and a real memo cited the attacker's
   own sentence into its Reasoning section. An honesty deduction, not a security
   one: the gate is now stronger than it has ever been.
+- **87 → 86** — **no event stream had ever reached a browser incrementally.**
+  The server emitted its frames in one batch and the proxy gzipped what was
+  left, so "watch the room think" delivered the whole transcript in one packet.
+  Measured in a browser: headers at 0.01s, every frame at 33.60s.
 
-All three are fixed and each is pinned by a test that fails against the code as
-it shipped. None of the three was found by the test suite — two were found by
-looking at the screen and one by reading a log, which is the most useful thing
-this project knows about its own verification.
+All four are fixed and each is pinned by a test that fails against the code as
+it shipped. **None of the four was found by the test suite** — two by looking at
+the screen, one by reading a log, one by timing individual frames instead of a
+whole response. Every one was the same shape: a difference between the
+environment a test constructs and the environment a user meets. That is the most
+useful thing this project knows about its own verification, and it is why the
+testing mark is 12/15 rather than 15.
 
 ## Two things a real run changed
 
@@ -208,9 +215,9 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 ## Testing
 
 ```bash
-make check   # ruff, 421 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
+make check   # ruff, 431 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
 make e2e     # 104 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 make artefacts # rebuild the report, deck, viva and demo from docs/results/
 
-cd apps/web && npm run smoke:live   # drive the DEPLOYED system in a browser
+cd apps/web && npm run smoke:live   # 5 tests against the DEPLOYED URL in a real browser
 ```
