@@ -140,22 +140,32 @@ Phase E: the harness and the artefacts.
 
 | | |
 |---|---|
-| **OWASP LLM Top 10** | 22 assertions, 8 risks covered, 0 gaps, 2 declared not applicable with reasons. The scorecard is **generated from the test names** — verified by renaming a control's tests away and watching the row flip to GAP. |
+| **OWASP LLM Top 10** | 24 assertions, 8 risks covered, 0 gaps, 2 declared not applicable with reasons. The scorecard is **generated from the test names** — verified by renaming a control's tests away and watching the row flip to GAP. |
 | **The two named attacks** | A poisoned document does not change the memo's recommendation, and cannot be quoted into it — the memo names what it refused and why; a turn signed with the wrong key breaks the chain. |
 | **Term 4 artefacts** | Report (docx + md), deck outline, 15 viva questions, 3-minute demo script — every figure read from `docs/results/` at build time. Delete a results file and the build fails. |
 
 ## Score
 
-**88 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
+**87 / 100** as a deployed MVP — [the rubric and the evidence](docs/scorecard.md).
 
-It went down, not up, after deploying taught two lessons. Deployment scores 11/15
-rather than the 14 predicted, because the embedding model does not fit a 512 MB
-free instance — the live instance searches lexically and cannot match across
-languages. And testing lost two marks for the reason worth reading: every test
-built its provider chain with a task-aware stub while the running service built a
-bare one, so 403 tests stayed green over a deployment where **every framing,
-score and memo returned 500**. Both are fixed and both are now pinned by tests
-that fail against the shipped code.
+Predicted 92, then 90, then 88, now 87. **Every revision has been downward**, and
+each one came from looking harder rather than from anything breaking:
+
+- **92 → 90** — the embedding model does not fit a 512 MB free instance, so the
+  live instance searches lexically and cannot match across languages. Deploying
+  subtracted capability as well as adding availability.
+- **90 → 88** — every test built its provider chain with a task-aware stub while
+  the running service built a bare one, so 403 tests stayed green over a
+  deployment where **every framing, score and memo returned 500**.
+- **88 → 87** — the Security tab claimed *"Its claim cannot reach the memo"*
+  while testing only the easy half of that, and a real memo cited the attacker's
+  own sentence into its Reasoning section. An honesty deduction, not a security
+  one: the gate is now stronger than it has ever been.
+
+All three are fixed and each is pinned by a test that fails against the code as
+it shipped. None of the three was found by the test suite — two were found by
+looking at the screen and one by reading a log, which is the most useful thing
+this project knows about its own verification.
 
 ## Two things a real run changed
 
@@ -198,7 +208,7 @@ cite will cite. Only a check that opens the citation knows whether it resolves.
 ## Testing
 
 ```bash
-make check   # ruff, 395 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
+make check   # ruff, 421 pytest, contrast gate, placeholder scan, OWASP scorecard, typecheck
 make e2e     # 104 Playwright tests on desktop and mobile (needs `make api` and `make web`)
 make artefacts # rebuild the report, deck, viva and demo from docs/results/
 
