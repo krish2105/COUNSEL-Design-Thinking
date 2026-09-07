@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -138,3 +140,103 @@ def test_ideas_are_collected_without_critique(client, session):
 
 def test_an_unknown_session_is_a_404(client):
     assert client.post("/sessions/nope/framings", headers=as_("analyst")).status_code == 404
+
+
+def sse(response) -> list[tuple[str, dict]]:
+    """Parse an SSE body into (event, data) pairs.
+
+    TestClient buffers the whole stream, which is fine here: what is being
+    checked is the FRAME SEQUENCE, not the timing. The timing is the part a
+    test cannot assert — see test_every_slow_write_has_a_streaming_sibling.
+    """
+    frames, name = [], None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            name = line[7:].strip()
+        elif line.startswith("data: ") and name:
+            frames.append((name, json.loads(line[6:])))
+            name = None
+    return frames
+
+
+def test_the_memo_streams_its_two_phases_and_ends_with_the_whole_memo(client, session):
+    """The Report tab's one button, over the wire.
+
+    POST /memo takes ~41s against a real model and returned 500 at exactly 30s
+    through the Next rewrite, so the button was broken in a browser while the
+    endpoint it called was healthy. The stream is the fix; this pins its shape.
+    """
+    client.post(f"/sessions/{session}/scores", json={"options": OPTIONS}, headers=as_("analyst"))
+    r = client.post(f"/sessions/{session}/memo/stream", headers=as_("analyst"))
+    assert r.status_code == 200
+
+    frames = sse(r)
+    kinds = [name for name, _ in frames]
+    assert kinds[0] == "memo_open", kinds
+    assert kinds[-1] == "done", kinds
+    assert "drafted" in kinds
+
+    # A recommendation must be readable BEFORE the dissents are collected —
+    # that is the whole point of splitting the phases rather than streaming
+    # one frame at the end.
+    drafted = next(data for name, data in frames if name == "drafted")
+    assert drafted["recommendation"]
+    assert kinds.index("drafted") < kinds.index("done")
+
+    # Every seat is asked, and the terminal frame carries the same payload the
+    # synchronous route returns, so the two cannot drift.
+    dissent_frames = [data for name, data in frames if name == "dissent"]
+    assert len(dissent_frames) == 5
+    done = frames[-1][1]
+    assert "# Decision memo" in done["markdown"]
+    assert done["recommendation"] == drafted["recommendation"]
+
+    # The dissent LOG holds dissenters, not attendees: a seat that agrees is
+    # not a dissent. So the memo's list must match exactly the seats whose
+    # streamed frame said they did not agree.
+    disagreed = {d["seat"] for d in dissent_frames if not d["agrees"]}
+    assert {d["seat"] for d in done["dissents"]} == disagreed
+    assert done["unanimous_dissent"] == (len(disagreed) == 5)
+
+
+def test_a_viewer_cannot_stream_a_memo_either(client, session):
+    """The stream is a second door to the same room, so it needs the same lock."""
+    r = client.post(f"/sessions/{session}/memo/stream", headers=as_("viewer"))
+    assert r.status_code == 403
+
+
+def test_every_slow_write_has_a_streaming_sibling():
+    """The invariant that would have caught this without a browser.
+
+    Any endpoint that fans a request out to all five seats, or runs more than
+    one model phase, will eventually exceed the 30-second ceiling that every
+    proxy between a browser and this process imposes. Measured twice now:
+    scoring at 103s and the memo at 41s, both returning 500 at exactly 30s
+    through the Next rewrite while completing fine when called directly.
+
+    So a slow endpoint without a /stream sibling is a button that works in
+    curl and not in the product. Adding one here without its stream fails.
+    """
+    from services.api.main import app
+
+    # The OpenAPI schema, not app.routes. This FastAPI version wraps included
+    # routers in _IncludedRouter objects that carry no .path, so enumerating
+    # app.routes yields only /docs and /openapi.json — the first version of
+    # this test did exactly that, matched nothing, and passed cleanly against a
+    # deliberately deleted stream. A test that cannot fail is worse than none.
+    paths = set(app.openapi()["paths"])
+
+    slow = {
+        "/sessions/{session_id}/scores",  # five seats x two options, ~103s measured
+        "/sessions/{session_id}/memo",  # draft + five dissents, ~41s measured
+    }
+    # Asserted to EXIST before being checked, so renaming one cannot quietly
+    # turn this back into a tautology.
+    assert slow <= paths, f"these endpoints moved; update this list: {sorted(slow - paths)}"
+
+    missing = {p for p in slow if f"{p}/stream" not in paths}
+    assert not missing, (
+        f"these run multi-seat model work with no streaming sibling: {sorted(missing)}. "
+        "A synchronous response longer than 30s returns 500 through the Next rewrite, "
+        "so the button that calls it is broken in a browser while curl says it is fine."
+    )

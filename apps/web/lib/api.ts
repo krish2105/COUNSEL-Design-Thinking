@@ -159,6 +159,23 @@ export const streamScores = (
     signal,
   );
 
+export type MemoFrame =
+  | { kind: "memo_open"; n_evidence: number; n_options: number }
+  | { kind: "drafted"; recommendation: string; margin: number; n_cited: number;
+      n_uncited: number; ungrounded: boolean }
+  | { kind: "dissent"; seat: string; agrees: boolean }
+  | ({ kind: "done" } & MemoResult);
+
+/* Streamed for the same reason scoring is: assembling a memo is two model
+ * phases and takes ~41s, and a 41-second synchronous response returns 500 at
+ * exactly 30s through the Next rewrite. See services/api/routers/decisions.py.
+ */
+export const streamMemo = (
+  sessionId: string,
+  onFrame: (f: MemoFrame) => void,
+  signal?: AbortSignal,
+) => stream(`/sessions/${sessionId}/memo/stream`, (f) => onFrame(f as MemoFrame), {}, signal);
+
 export type Ranked = { option: string; total: number; mean_confidence: number; supporters: string[] };
 export type FlipRow = {
   evidence_id: string; summary: string; winner_before: string; winner_after: string;

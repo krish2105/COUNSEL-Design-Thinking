@@ -15,7 +15,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/components/Providers";
 import { Scrollable } from "@/components/Scrollable";
-import { api, type Calibration, type MemoResult, type SessionState } from "@/lib/api";
+import {
+  api,
+  streamMemo,
+  type Calibration,
+  type MemoResult,
+  type SessionState,
+} from "@/lib/api";
 import { currentSession } from "@/lib/session";
 
 export default function Report() {
@@ -26,6 +32,7 @@ export default function Report() {
   const [verified, setVerified] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [drafted, setDrafted] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const id = typeof window !== "undefined" ? currentSession() : null;
 
@@ -47,12 +54,21 @@ export default function Report() {
     })();
   }, [id]);
 
+  /* Streamed, not awaited as one response. Assembling a memo is two model
+   * phases — drafting against the corpus, then asking all five seats to
+   * dissent — and measured at ~41s it returns 500 at exactly 30s through the
+   * Next rewrite. The recommendation appears as soon as it is drafted, so the
+   * wait shows its work instead of spinning. */
   const build = useCallback(async () => {
     if (!id) return;
     setBusy(true);
     setError(null);
+    setDrafted(null);
     try {
-      setMemo(await api.memo(id));
+      await streamMemo(id, (frame) => {
+        if (frame.kind === "drafted") setDrafted(frame.recommendation);
+        else if (frame.kind === "done") setMemo(frame);
+      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -119,6 +135,7 @@ export default function Report() {
       </div>
 
       <p className="method">{t.report.exportNote}</p>
+      {busy && drafted ? <p className="tag">{drafted}</p> : null}
       {error ? <p className="erratum">{error}</p> : null}
 
       {memo ? (

@@ -14,6 +14,7 @@ they finish, and a decision that depends on that is not a decision.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
@@ -159,9 +160,19 @@ def collect_scores(
 
 
 def collect_dissents(
-    session: Session, recommendation: str, *, chain: LLMChain
+    session: Session,
+    recommendation: str,
+    *,
+    chain: LLMChain,
+    on_progress: Callable[[str, DissentDraft], None] | None = None,
 ) -> dict[str, DissentDraft]:
-    """Decide — who does not agree, and what it would take to move them."""
+    """Decide — who does not agree, and what it would take to move them.
+
+    `on_progress(seat, draft)` fires as each seat answers, in completion order,
+    so a caller streaming to a browser can show dissent arriving rather than
+    holding the connection silent. The returned mapping is still in seating
+    order, because the record must not depend on who finished first.
+    """
     return _fan_out(
         chain,
         session,
@@ -169,6 +180,7 @@ def collect_dissents(
         f"The room is converging on: {recommendation}. State whether you agree, your position "
         "in under 80 words, and specifically what evidence would change your mind.",
         DissentDraft,
+        on_progress=on_progress,
     )
 
 

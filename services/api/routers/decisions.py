@@ -15,7 +15,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from services.api import deps
 from services.api.core.rbac import Scope, require
-from services.api.core.schemas import Score
+from services.api.core.schemas import DissentDraft, Score
 from services.api.core.stream import event
 from services.api.crew import ledger as ledger_mod
 from services.api.crew import store
@@ -219,6 +219,10 @@ def memo(session_id: str) -> dict[str, object]:
     attach_dissents(built, dissents)
     store.save_artefacts(session_id, "dissent", dissents, conn=conn)
 
+    return _memo_payload(built)
+
+
+def _memo_payload(built) -> dict[str, object]:
     return {
         "markdown": render_markdown(built),
         "recommendation": built.recommendation,
@@ -229,6 +233,67 @@ def memo(session_id: str) -> dict[str, object]:
         "dissents": [d.__dict__ for d in built.dissents],
         "margin": built.margin,
     }
+
+
+@router.post("/memo/stream", dependencies=[Depends(require(Scope.SESSION_WRITE))])
+async def memo_stream(session_id: str) -> EventSourceResponse:
+    """The memo, streamed. Same reason as scores/stream, found the same way.
+
+    Assembling a memo is two model phases — drafting the memo against the
+    corpus, then asking all five seats whether they dissent — and measured on
+    qwen3:8b it takes about 41 seconds. The synchronous POST /memo above
+    completes in 40.5s directly and returns **500 at exactly 30.08s** through
+    the Next.js rewrite, so the Report tab's one button was broken in a browser
+    while the endpoint it calls was fine. That is the same 30-second gateway
+    ceiling that scores/stream exists for; the memo path simply had not been
+    driven through a browser on a session slow enough to cross it.
+
+    Streaming also makes the wait legible: the recommendation appears as soon as
+    it is drafted, and each seat's dissent lands as that seat answers.
+    """
+    session = _session(session_id)
+    session.stage = Stage.DECIDE
+    conn = deps.db()
+    scores = _stored_scores(session_id)
+    evidence = store.load_evidence(session_id, conn=conn)
+    options = {score.option for seat_scores in scores.values() for score in seat_scores}
+    seen: list[tuple[str, DissentDraft]] = []
+
+    async def frames():
+        yield event("memo_open", {"n_evidence": len(evidence), "n_options": len(options)})
+
+        built = await anyio.to_thread.run_sync(
+            lambda: build_memo(
+                session, chain=deps.llm(), conn=conn, scores=scores, evidence=evidence
+            )
+        )
+        yield event(
+            "drafted",
+            {
+                "recommendation": built.recommendation,
+                "margin": built.margin,
+                "n_cited": len(built.context) + len(built.reasoning),
+                "n_uncited": len(built.uncited),
+                "ungrounded": built.ungrounded,
+            },
+        )
+
+        dissents = await anyio.to_thread.run_sync(
+            lambda: collect_dissents(
+                session,
+                built.recommendation,
+                chain=deps.llm(),
+                on_progress=lambda seat, draft: seen.append((seat, draft)),
+            )
+        )
+        for seat, draft in seen:
+            yield event("dissent", {"seat": seat, "agrees": draft.agrees})
+
+        attach_dissents(built, dissents)
+        store.save_artefacts(session_id, "dissent", dissents, conn=conn)
+        yield event("done", _memo_payload(built))
+
+    return EventSourceResponse(frames())
 
 
 @router.post("/outcome", dependencies=[Depends(require(Scope.SESSION_WRITE))])
