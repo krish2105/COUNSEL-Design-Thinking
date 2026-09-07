@@ -79,11 +79,58 @@ test("the Board produces framings and ideas on the deployed site", async ({ page
   await expect(page.getByText(/Nothing on the board yet/i)).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("button", { name: "Ask for framings" }).click();
-  await expect(page.locator(".entries .rail-entry, .entries > *").first()).toBeVisible({
-    timeout: 120_000,
-  });
-  await expect(page.locator(".erratum")).toHaveCount(0);
 
-  // Five seats, five framings — a partial answer is a failure, not a degradation.
-  expect(await page.locator(".entries > *").count()).toBe(5);
+  // Five seats, five framings — a partial answer is a failure, not a
+  // degradation. Waited for with a retrying assertion rather than counted once
+  // after the first entry appears: the seats now arrive one at a time, so a
+  // snapshot count taken when the first lands reads 1 and always will.
+  await expect(page.locator(".entries > *")).toHaveCount(5, { timeout: 120_000 });
+  await expect(page.locator(".erratum")).toHaveCount(0);
+});
+
+test("event streams reach the deployed browser uncompressed", async ({ page }) => {
+  /* The regression this exists for was total and silent. Next compresses
+   * proxied responses whenever the client asks, and a browser always asks — so
+   * text/event-stream came back Content-Encoding: gzip, and gzip buffers.
+   * Measured in a real browser: headers at 0.01s, then every frame at once at
+   * 33.60s. Under curl it streamed correctly, because curl does not request
+   * gzip by default, so every hand test of every stream in this project looked
+   * right while no stream had ever streamed to a browser.
+   *
+   * Asserted here rather than locally because the thing that compresses is the
+   * deployment, not the code. */
+  test.setTimeout(180_000);
+  await page.goto(`${LIVE}/board`);
+
+  const result = await page.evaluate(async () => {
+    const session = await fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-counsel-role": "analyst" },
+      body: JSON.stringify({ question: "hypermarket or plant?", stage: "Define" }),
+    }).then((r) => r.json());
+
+    const res = await fetch(`/api/sessions/${session.session_id}/framings/stream`, {
+      method: "POST",
+      headers: { "x-counsel-role": "analyst" },
+    });
+    const encoding = res.headers.get("content-encoding");
+
+    // Read to completion so a buffering proxy cannot pass by answering headers.
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    const events: string[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+        if (line.startsWith("event: ")) events.push(line.slice(7).trim());
+      }
+    }
+    return { encoding, events };
+  });
+
+  expect(result.encoding, "an SSE response must not be compressed").not.toBe("gzip");
+  expect(result.events[0]).toBe("stage_open");
+  expect(result.events.filter((e) => e === "framing")).toHaveLength(5);
+  expect(result.events.at(-1)).toBe("done");
 });
