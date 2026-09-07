@@ -37,6 +37,7 @@ re-ingestion, not a fallback.
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import urllib.request
@@ -155,6 +156,25 @@ class GeminiEmbedder:
         return [[float(x) for x in e["values"]] for e in r.json()["embeddings"]]
 
 
+#: One ONNX session per model, process-wide.
+#:
+#: Two reasons. It is expensive to build — several hundred milliseconds and a
+#: fifth of a 512 MB instance's memory — so building one per embedder object is
+#: waste. And onnxruntime's teardown on macOS aborts the interpreter with
+#: "recursive_mutex lock failed" when sessions are destroyed at exit in the
+#: wrong order; `make check` failed with SIGABRT AFTER all 323 tests had
+#: passed. One cached session, released deliberately before interpreter
+#: shutdown, avoids both.
+_ONNX_SESSIONS: dict[str, object] = {}
+
+
+def _release_onnx_sessions() -> None:
+    _ONNX_SESSIONS.clear()
+
+
+atexit.register(_release_onnx_sessions)
+
+
 class FastEmbedEmbedder:
     """ONNX in-process. What the deployed instance actually runs."""
 
@@ -166,7 +186,6 @@ class FastEmbedEmbedder:
         self.dim = 384
         # The reason chunk size is a property of the embedder and not a constant.
         self.max_tokens = 128
-        self._impl = None
 
     def available(self) -> bool:
         try:
@@ -177,11 +196,11 @@ class FastEmbedEmbedder:
             return False
 
     def _load(self):
-        if self._impl is None:
+        if self.model not in _ONNX_SESSIONS:
             from fastembed import TextEmbedding
 
-            self._impl = TextEmbedding(model_name=self.model)
-        return self._impl
+            _ONNX_SESSIONS[self.model] = TextEmbedding(model_name=self.model)
+        return _ONNX_SESSIONS[self.model]
 
     def embed(self, texts, *, kind: Kind = "passage"):
         if not texts:
