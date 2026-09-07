@@ -188,6 +188,12 @@ class FastEmbedEmbedder:
         self.max_tokens = 128
 
     def available(self) -> bool:
+        # Measured on Render's free tier: loading this model's ONNX session
+        # exceeds 512 MB and the process is killed — a 502 with no application
+        # log. So a deployment that cannot afford it says so instead of finding
+        # out per request.
+        if os.getenv("COUNSEL_DISABLE_FASTEMBED", "").strip().lower() in {"1", "true", "yes"}:
+            return False
         try:
             import fastembed  # noqa: F401
 
@@ -221,18 +227,23 @@ class EmbedderChain:
         self.candidates = candidates or [OllamaEmbedder(), GeminiEmbedder(), FastEmbedEmbedder()]
         self._resolved: Embedder | None = None
 
-    def resolve(self) -> Embedder:
+    def resolve(self) -> Embedder | None:
+        """The active embedder, or None when nothing can run here.
+
+        None is a supported state, not an error. Measured on Render's free
+        tier: the in-process ONNX model does not fit in 512 MB, and without a
+        Gemini key there is no other option — so the deployed instance has no
+        embedder at all. Raising there would have made every upload a 502.
+
+        Instead the corpus is stored without vectors and retrieval runs
+        lexical-only, saying so in `degraded`. The app keeps working; it loses
+        cross-lingual search and admits it.
+        """
         if self._resolved is None:
             for candidate in self.candidates:
                 if candidate.available():
                     self._resolved = candidate
                     break
-            else:
-                raise RuntimeError(
-                    "no embedder available. Start Ollama and `ollama pull bge-m3:567m`, "
-                    "set GEMINI_API_KEY, or install the cloud extra with "
-                    "`uv sync --extra cloud`."
-                )
         return self._resolved
 
     def health(self) -> list[dict[str, object]]:
@@ -242,6 +253,17 @@ class EmbedderChain:
         ]
 
 
-def get_embedder() -> Embedder:
-    """The active embedder. Never mixes spaces; see EmbedderChain."""
+def get_embedder() -> Embedder | None:
+    """The active embedder, or None if none can run here. See EmbedderChain."""
     return EmbedderChain().resolve()
+
+
+def require_embedder() -> Embedder:
+    """For callers that genuinely cannot proceed without one."""
+    embedder = get_embedder()
+    if embedder is None:
+        raise RuntimeError(
+            "no embedder available. Start Ollama and `ollama pull bge-m3:567m`, set "
+            "GEMINI_API_KEY, or install the cloud extra with `uv sync --extra cloud`."
+        )
+    return embedder

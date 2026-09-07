@@ -279,3 +279,45 @@ def test_the_fallback_creates_a_plain_table_not_a_virtual_one(monkeypatch):
         assert "BLOB" in sql.upper()
     finally:
         conn.close()
+
+
+def test_a_single_document_corpus_is_still_searchable():
+    """BM25's IDF goes non-positive when a term appears in every document, which
+    on a one-document corpus is every term in it. Filtering on score > 0 then
+    returned NOTHING for a query that plainly matches — measured on the deployed
+    instance, where uploading one document and searching it gave zero results.
+    """
+    conn = connect(":memory:")
+    try:
+        ingest(FIXTURES / "board-paper.pdf", conn=conn)
+        result = retrieve("payback period", conn=conn, limit=5)
+        assert result.hits, "a one-document corpus must still be searchable"
+        assert any("payback period" in h.chunk.text for h in result.hits)
+    finally:
+        conn.close()
+
+
+def test_retrieval_works_with_no_embedder_at_all(monkeypatch):
+    """The deployed free tier cannot fit an embedding model in 512 MB, so there
+    is no embedder there. That is a supported state: the corpus is stored
+    without vectors, search runs lexical-only, and the reason is reported rather
+    than the request failing."""
+    from services.api.rag import embed as embed_mod
+
+    monkeypatch.setenv("COUNSEL_DISABLE_FASTEMBED", "1")
+    monkeypatch.setenv("OLLAMA_HOST", "http://127.0.0.1:1")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    assert embed_mod.EmbedderChain().resolve() is None
+
+    conn = connect(":memory:")
+    try:
+        _, chunks = ingest(FIXTURES / "board-paper.pdf", conn=conn, embedder=None)
+        assert chunks, "the document is still ingested"
+        assert conn.execute("SELECT COUNT(*) FROM vector_index").fetchone()[0] == 0
+
+        result = retrieve("payback period", conn=conn, limit=5, embedder=None)
+        assert result.hits, "lexical search must still work"
+        assert result.degraded and "lexical only" in result.degraded[0]
+        assert "cannot match across languages" in result.degraded[0]
+    finally:
+        conn.close()

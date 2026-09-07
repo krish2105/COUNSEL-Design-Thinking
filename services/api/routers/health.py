@@ -34,9 +34,15 @@ def healthz() -> dict[str, object]:
         "active_provider": active.name if active else None,
         "search_tiers": deps.search().health(),
         "embedder": {
-            "active": model_key(embed),
-            "dim": embed.dim,
-            "max_tokens": embed.max_tokens,
+            "active": model_key(embed) if embed else None,
+            "dim": embed.dim if embed else None,
+            "max_tokens": embed.max_tokens if embed else None,
+            "note": (
+                None
+                if embed
+                else "No embedding model fits this environment. Search is lexical only "
+                "and cannot match across languages. Set GEMINI_API_KEY to restore it."
+            ),
             # The whole chain, not just the winner: which embedders were
             # available is what explains why the corpus is in the space it is in.
             "chain": EmbedderChain().health(),

@@ -121,7 +121,19 @@ def _bm25_ranking(query: str, chunks: list[Chunk], limit: int) -> list[str]:
         return []
     scores = BM25Okapi([tokenize(c.text) for c in chunks]).get_scores(tokens)
     ordered = sorted(zip(chunks, scores, strict=True), key=lambda p: -p[1])
-    return [c.chunk_id for c, s in ordered[:limit] if s > 0]
+    positive = [c.chunk_id for c, s in ordered[:limit] if s > 0]
+    if positive:
+        return positive
+
+    # BM25's IDF goes non-positive when a term appears in every document, which
+    # on a ONE-document corpus is every term in it. Filtering on score > 0 then
+    # returns nothing for a query that plainly matches — measured on the
+    # deployed instance, where a user who uploads one document and searches it
+    # got zero results. Falling back to token overlap keeps small corpora
+    # searchable without disturbing the ranking anywhere else.
+    wanted = set(tokens)
+    overlap = [(c.chunk_id, len(wanted & set(tokenize(c.text)))) for c in chunks]
+    return [cid for cid, n in sorted(overlap, key=lambda p: -p[1])[:limit] if n > 0]
 
 
 def _vector_ranking(
@@ -200,7 +212,16 @@ def retrieve(
     pool = max(limit * 4, 20)
 
     lexical = _bm25_ranking(query, chunks, pool)
-    semantic, why_skipped = _vector_ranking(query, conn=conn, embedder=embedder, limit=pool)
+    if embedder is None:
+        semantic, why_skipped = (
+            [],
+            (
+                "no embedding model can run in this environment, so search is lexical only "
+                "and cannot match across languages"
+            ),
+        )
+    else:
+        semantic, why_skipped = _vector_ranking(query, conn=conn, embedder=embedder, limit=pool)
 
     lex_rank = {cid: i for i, cid in enumerate(lexical)}
     vec_rank = {cid: i for i, cid in enumerate(semantic)}

@@ -107,7 +107,11 @@ _PARA = re.compile(r"\n\s*\n")
 _SENT = re.compile(r"(?<=[.!?۔।])\s+")
 
 
-def _budget(embedder: Embedder) -> int:
+def _budget(embedder: Embedder | None) -> int:
+    #: With no embedder there is no context window to respect, so the chunk
+    #: size is the retrieval-granularity cap alone.
+    if embedder is None:
+        return MAX_CHUNK_CHARS
     return max(200, min(MAX_CHUNK_CHARS, embedder.max_tokens * CHARS_PER_TOKEN))
 
 
@@ -184,7 +188,14 @@ def ingest(
         )
         for ordinal, (start, end) in enumerate(plan_chunks(text, _budget(embedder)))
     ]
-    vectors = embedder.embed([c.text for c in chunks], kind="passage") if chunks else []
+    # No embedder is a supported state: the deployed free tier cannot fit one
+    # in memory. The document is still ingested, chunked and searchable — it
+    # simply has no vectors, and retrieval says so rather than failing.
+    vectors = (
+        embedder.embed([c.text for c in chunks], kind="passage")
+        if chunks and embedder is not None
+        else []
+    )
     findings = scan(text)
 
     with WRITE_LOCK:
@@ -221,7 +232,7 @@ def ingest(
             [(c.chunk_id, c.doc_id, c.ordinal, c.text, c.start, c.end, c.lang) for c in chunks],
         )
 
-        if chunks:
+        if chunks and embedder is not None and vectors:
             table = ensure_vector_table(conn, embedder.dim)
             key = model_key(embedder)
             for chunk, vector in zip(chunks, vectors, strict=True):

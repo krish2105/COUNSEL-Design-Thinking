@@ -119,7 +119,11 @@ def test_the_chain_names_every_candidate_for_healthz():
     assert names == {"ollama", "gemini", "fastembed"}
 
 
-def test_no_embedder_at_all_raises_with_instructions():
+def test_no_embedder_resolves_to_none_rather_than_raising():
+    """None is a supported state, not an error. Measured on Render's free tier:
+    the in-process ONNX model does not fit in 512 MB and there is no other
+    option without a key, so the deployed instance has no embedder at all.
+    Raising would have made every upload a 502."""
     from services.api.rag.embed import EmbedderChain
 
     class Absent:
@@ -129,7 +133,19 @@ def test_no_embedder_at_all_raises_with_instructions():
             return False
 
         def embed(self, texts, *, kind="passage"):
-            raise AssertionError
+            raise AssertionError("an unavailable embedder must never be called")
 
-    with pytest.raises(RuntimeError, match="ollama pull bge-m3"):
-        EmbedderChain([Absent()]).resolve()
+    assert EmbedderChain([Absent()]).resolve() is None
+
+
+def test_require_embedder_still_raises_with_instructions():
+    """For the callers that genuinely cannot proceed without one."""
+    from services.api.rag import embed as embed_mod
+
+    original = embed_mod.get_embedder
+    try:
+        embed_mod.get_embedder = lambda: None
+        with pytest.raises(RuntimeError, match="ollama pull bge-m3"):
+            embed_mod.require_embedder()
+    finally:
+        embed_mod.get_embedder = original
