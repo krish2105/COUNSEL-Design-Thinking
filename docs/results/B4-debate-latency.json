@@ -19,5 +19,37 @@
   ],
   "transcript_intact": true,
   "mean_chars_per_turn": 529,
-  "meets_target": true
+  "meets_target": true,
+  "superseded_by": "the Phase D performance work; the numbers below were re-measured",
+  "phase_d_remeasurement": {
+    "problem": "Every seat was handed the ENTIRE transcript every round, so the prompt and the wall clock both grew with the debate.",
+    "measured_before": {
+      "round_1": {
+        "seconds": 18.1,
+        "history_tokens": 111
+      },
+      "round_2": {
+        "seconds": 29.9,
+        "history_tokens": 931
+      },
+      "round_3": {
+        "seconds": 34.2,
+        "history_tokens": 1776
+      },
+      "three_round_total_seconds": 126.5
+    },
+    "diagnosis": "Five seats re-processing 1776 tokens is roughly 9k tokens of prompt work per round, compounding every round. Ollama also caps real concurrency at about 3x rather than 5x, measured: a single call takes 1.2s alone and up to 5.2s when five run together.",
+    "fix": "History is windowed. The previous round is given in full; older turns are clipped to 160 characters, capped at 10 of them, with any omission declared in the prompt. The Facilitator's round-0 turn — which carries the question and the stage rules — is always kept.",
+    "measured_after": {
+      "round_1": 16.9,
+      "round_2": 18.1,
+      "round_3": 18.8,
+      "round_4": 22.9,
+      "round_5": 24.8,
+      "three_round_equivalent_seconds": 60.9,
+      "history_tokens_settle_at": 1284
+    },
+    "result": "126.5s -> 60.9s for three rounds, a 2.1x speedup, and the prompt now settles instead of growing.",
+    "also_added": "keep_alive on the chat model so retrieval does not evict it between rounds, and a startup warm-up so the first round of a session does not pay a cold load."
+  }
 }

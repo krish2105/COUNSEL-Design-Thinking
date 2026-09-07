@@ -39,6 +39,25 @@ from services.api.crew.transcript import Turn
 MAX_TURN_TOKENS = 180
 MAX_ROUNDS = 6
 
+#: How many past rounds each seat is shown in full. Everything older is
+#: compressed to one line per seat.
+#:
+#: Measured before this existed: every seat was handed the ENTIRE transcript
+#: every round, so the history grew 111 -> 931 -> 1776 tokens and a round grew
+#: 18.1s -> 29.9s -> 34.2s. Five seats re-processing 1776 tokens is ~9k tokens
+#: of prompt work per round, and it compounds every round after.
+#:
+#: One round of full context is also the honest amount. A facilitated round
+#: means arguing against the state at the end of the previous round; nobody in
+#: a real boardroom re-reads round one verbatim before speaking in round five.
+HISTORY_ROUNDS = 1
+#: Characters of an older turn kept in the running summary.
+SUMMARY_CHARS = 160
+#: How many older turns the summary carries at most. Without this the summary
+#: itself grows one line per turn forever — slower than the full transcript
+#: did, but still linear, which is the same bug with a smaller constant.
+SUMMARY_TURNS = 10
+
 
 class Facilitator:
     def __init__(self, llm: LLMChain, *, max_turn_tokens: int = MAX_TURN_TOKENS) -> None:
@@ -180,9 +199,47 @@ class Facilitator:
         Turns from the CURRENT round are excluded by construction — run_round
         builds this before any seat speaks — which is what makes concurrent
         speaking equivalent to sequential speaking rather than a shortcut.
+
+        Bounded, not complete. The most recent HISTORY_ROUNDS rounds are given
+        in full; anything older is one clipped line per turn. Without this the
+        prompt grew every round and so did the wall clock (see HISTORY_ROUNDS).
         """
-        lines = [
-            f"[round {t.round_no}] {t.speaker.upper()}: {t.text}"
-            for t in session.transcript.turns()
-        ]
-        return "\n\n".join(lines) if lines else "The room has not spoken yet. Open the argument."
+        turns = session.transcript.turns()
+        if not turns:
+            return "The room has not spoken yet. Open the argument."
+
+        cutoff = max(0, session.round_no - HISTORY_ROUNDS)
+        recent = [t for t in turns if t.round_no > cutoff]
+        # The Facilitator's opening turn is round 0 and carries the question and
+        # the stage rules, so it is always kept. Dropping it left round 1 with an
+        # EMPTY history — the seats opened the argument having been told nothing
+        # about it beyond their own system prompt.
+        opening = [t for t in turns if t.round_no == 0]
+        summarised = [t for t in turns if 0 < t.round_no <= cutoff and t.speaker in SEATING]
+        dropped = max(0, len(summarised) - SUMMARY_TURNS)
+        older = opening + summarised[-SUMMARY_TURNS:]
+
+        blocks = []
+        if older:
+            preamble = "Earlier rounds, in brief:"
+            if dropped:
+                # Said out loud rather than silently truncated: a seat should
+                # know the record is longer than what it was handed.
+                preamble += f" ({dropped} earlier turn(s) omitted)"
+            blocks.append(
+                preamble
+                + "\n"
+                + "\n".join(
+                    f"- [round {t.round_no}] {t.speaker.upper()}: "
+                    f"{t.text[:SUMMARY_CHARS].rstrip()}..."
+                    for t in older
+                )
+            )
+        if recent:
+            blocks.append(
+                "The round you are answering:\n\n"
+                + "\n\n".join(f"[round {t.round_no}] {t.speaker.upper()}: {t.text}" for t in recent)
+            )
+        return (
+            "\n\n".join(blocks) if blocks else ("The room has not spoken yet. Open the argument.")
+        )

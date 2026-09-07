@@ -43,6 +43,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+async def _warm() -> None:
+    """Load the chat model before anyone clicks anything.
+
+    Otherwise the first round of a session pays a cold model load on top of its
+    generation, which lands on exactly the person seeing the product for the
+    first time. Failures here are ignored on purpose: a warm-up that can break
+    startup is worse than a slow first round.
+    """
+    import contextlib
+
+    import anyio
+
+    from services.api.core.llm import Message, OllamaProvider
+
+    async def warm() -> None:
+        with contextlib.suppress(Exception):
+            provider = OllamaProvider()
+            if provider.available():
+                await anyio.to_thread.run_sync(
+                    lambda: provider.complete("warm", [Message("user", "hi")], max_tokens=1)
+                )
+
+    with contextlib.suppress(Exception):
+        import asyncio
+
+        asyncio.get_running_loop().create_task(warm())
+
+
 app.include_router(health.router)
 app.include_router(documents.router)
 app.include_router(research.router)

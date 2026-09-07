@@ -150,3 +150,59 @@ def test_every_stage_declares_at_least_one_rule():
     """A stage whose rule nothing checks is a heading, not a stage."""
     for stage in Stage:
         assert STAGE_RULES[stage], stage
+
+
+def test_history_is_bounded_so_rounds_do_not_get_slower(facilitator):
+    """Measured before this: every seat was handed the whole transcript each
+    round, so history grew 111 -> 931 -> 1776 tokens and a round grew
+    18.1s -> 29.9s -> 34.2s. Five seats re-reading 1776 tokens is ~9k tokens of
+    prompt work per round, compounding.
+    """
+    from services.api.crew.facilitator import HISTORY_ROUNDS, SUMMARY_TURNS
+
+    session = facilitator.open("s-bounded", QUESTION, stage=Stage.TEST)
+    sizes = []
+    for _ in range(8):
+        sizes.append(len(facilitator._history(session)))
+        facilitator.run_round(session)
+
+    assert HISTORY_ROUNDS == 1 and SUMMARY_TURNS == 10
+
+    # Once the window and the summary are both full, the prompt stops growing.
+    settled = sizes[5:]
+    assert max(settled) - min(settled) < 0.25 * min(settled), (
+        f"history is still creeping after it should have settled: {sizes}"
+    )
+
+
+def test_omitted_turns_are_declared_rather_than_silently_dropped(facilitator):
+    """A seat should know the record is longer than what it was handed."""
+    from services.api.crew.facilitator import SUMMARY_TURNS
+
+    session = facilitator.open("s-omit", QUESTION, stage=Stage.TEST)
+    for _ in range(SUMMARY_TURNS // 5 + 3):
+        facilitator.run_round(session)
+    assert "turn(s) omitted" in facilitator._history(session)
+
+
+def test_the_opening_turn_is_always_in_the_history(facilitator):
+    """The Facilitator's round-0 turn carries the question and the stage rules.
+    Windowing dropped it, which left round 1 with an EMPTY history: the seats
+    opened the argument having been told nothing about it."""
+    session = facilitator.open("s-opening", QUESTION, stage=Stage.IDEATE)
+    history = facilitator._history(session)
+
+    assert history.strip(), "round 1 must not start from nothing"
+    assert QUESTION in history
+    assert "No critique" in history, "the stage rules must survive windowing"
+
+
+def test_older_rounds_are_summarised_rather_than_dropped(facilitator):
+    session = facilitator.open("s-summary", QUESTION, stage=Stage.TEST)
+    for _ in range(3):
+        facilitator.run_round(session)
+    history = facilitator._history(session)
+
+    assert "Earlier rounds, in brief" in history
+    assert "The round you are answering" in history
+    assert "[round 3]" in history, "the previous round must be present in full"

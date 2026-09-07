@@ -226,6 +226,10 @@ class OllamaProvider:
                 "messages": [{"role": "system", "content": system}]
                 + [{"role": m.role, "content": m.content} for m in messages],
                 "stream": False,
+                # Keep the model resident between rounds. Retrieval touches the
+                # embedding model in between, and without this the two evict
+                # each other and every turn pays a cold load.
+                "keep_alive": "30m",
                 # qwen3 reasons by default. A boardroom turn is a position, not a
                 # scratchpad, and thinking tokens triple the wall clock for output
                 # the transcript then has to hide.
