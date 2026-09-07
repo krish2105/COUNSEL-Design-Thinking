@@ -222,3 +222,60 @@ def test_an_empty_corpus_returns_nothing_without_raising():
 )
 def test_tokenize_handles_all_three_scripts(text, expected):
     assert tokenize(text) == expected
+
+
+def test_retrieval_works_without_the_sqlite_extension(monkeypatch):
+    """Render's Python is built without loadable-extension support, so
+    sqlite-vec cannot load there at all. The suite was green and the first
+    request to the live API was a 500 — every Python on the dev machine has the
+    flag.
+
+    Vectors now fall back to a brute-force cosine scan. This asserts the
+    fallback returns the SAME ordering as sqlite-vec, not merely that it returns
+    something: a fallback that silently reranks would be worse than an error.
+    """
+    from services.api.core import db as db_mod
+
+    with_extension = connect(":memory:")
+    try:
+        assert db_mod.vec_available(with_extension) is True
+        for name in ("docs/trilingual.md", "docs/board-paper.pdf"):
+            ingest(FIXTURES.parent / name, conn=with_extension)
+        expected = [
+            h.chunk.text for h in retrieve("payback period", conn=with_extension, limit=5).hits
+        ]
+    finally:
+        with_extension.close()
+
+    def refuses_to_load(_conn):
+        raise AttributeError("'sqlite3.Connection' object has no attribute ...")
+
+    monkeypatch.setattr(db_mod.sqlite_vec, "load", refuses_to_load)
+    without = db_mod.connect(":memory:")
+    try:
+        assert db_mod.vec_available(without) is False
+        for name in ("docs/trilingual.md", "docs/board-paper.pdf"):
+            ingest(FIXTURES.parent / name, conn=without)
+        got = [h.chunk.text for h in retrieve("payback period", conn=without, limit=5).hits]
+    finally:
+        without.close()
+
+    assert got == expected, "the numpy fallback must rank identically to sqlite-vec"
+
+
+def test_the_fallback_creates_a_plain_table_not_a_virtual_one(monkeypatch):
+    from services.api.core import db as db_mod
+
+    monkeypatch.setattr(
+        db_mod.sqlite_vec, "load", lambda _c: (_ for _ in ()).throw(AttributeError())
+    )
+    conn = db_mod.connect(":memory:")
+    try:
+        db_mod.ensure_vector_table(conn, 384)
+        sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'vectors_384'").fetchone()[
+            "sql"
+        ]
+        assert "VIRTUAL TABLE" not in sql.upper()
+        assert "BLOB" in sql.upper()
+    finally:
+        conn.close()

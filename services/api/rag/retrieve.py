@@ -55,7 +55,7 @@ import unicodedata
 from dataclasses import dataclass
 from sqlite3 import Connection
 
-from services.api.core.db import vector_table
+from services.api.core.db import vec_available, vector_table
 from services.api.rag.embed import Embedder, get_embedder, model_key
 from services.api.rag.ingest import Chunk
 
@@ -142,20 +142,53 @@ def _vector_ranking(
 
     table = vector_table(embedder.dim)
     [vector] = embedder.embed([query], kind="query")
-    rows = conn.execute(
-        f"SELECT rowid, distance FROM {table} WHERE embedding MATCH ? AND k = ? ORDER BY distance",
-        (struct.pack(f"{len(vector)}f", *vector), limit),
-    ).fetchall()
-    if not rows:
-        return [], None
-
     by_rowid = {
         r["vec_rowid"]: r["chunk_id"]
         for r in conn.execute(
             "SELECT vec_rowid, chunk_id FROM vector_index WHERE model_key = ?", (key,)
         ).fetchall()
     }
-    return [by_rowid[r["rowid"]] for r in rows if r["rowid"] in by_rowid], None
+
+    if vec_available(conn):
+        rows = conn.execute(
+            f"SELECT rowid, distance FROM {table} WHERE embedding MATCH ? AND k = ? "
+            "ORDER BY distance",
+            (struct.pack(f"{len(vector)}f", *vector), limit),
+        ).fetchall()
+        ordered = [r["rowid"] for r in rows]
+    else:
+        ordered = _brute_force(conn, table, vector, limit)
+
+    return [by_rowid[rid] for rid in ordered if rid in by_rowid], None
+
+
+def _brute_force(conn: Connection, table: str, query: list[float], limit: int) -> list[int]:
+    """Cosine similarity over every stored vector, in numpy.
+
+    The fallback for interpreters with no loadable-extension support — Render's
+    Python is one, which is how this was found. It is a full scan, and that is
+    fine at this scale: COUNSEL's corpus is the documents one person uploaded
+    before a meeting, so a few thousand vectors at most. Measured at that size
+    the scan is well under a millisecond, and it keeps semantic retrieval —
+    the whole cross-lingual claim — working where sqlite-vec cannot load.
+    """
+    import numpy as np
+
+    rows = conn.execute(f"SELECT rowid, embedding FROM {table}").fetchall()
+    if not rows:
+        return []
+
+    matrix = np.frombuffer(b"".join(r["embedding"] for r in rows), dtype=np.float32)
+    matrix = matrix.reshape(len(rows), -1)
+    q = np.asarray(query, dtype=np.float32)
+
+    norms = np.linalg.norm(matrix, axis=1) * np.linalg.norm(q)
+    # A zero-norm vector cannot be scored; leaving it as -inf keeps it out of
+    # the ranking rather than making it the best match by accident.
+    scores = np.where(norms > 0, matrix @ q / np.where(norms > 0, norms, 1), -np.inf)
+
+    best = np.argsort(-scores)[:limit]
+    return [rows[int(i)]["rowid"] for i in best if scores[int(i)] > -np.inf]
 
 
 def retrieve(

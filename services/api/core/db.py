@@ -174,6 +174,32 @@ CREATE TABLE IF NOT EXISTS quotas (
 """
 
 
+#: Whether sqlite-vec is usable on a connection.
+#:
+#: Render's Python is built WITHOUT --enable-loadable-sqlite-extensions, so
+#: `conn.enable_load_extension` does not exist there at all and sqlite-vec can
+#: never load. That was found by deploying, not by testing: every Python on
+#: this project's development machine has the flag, so the suite was green and
+#: the first request to the live API was a 500.
+#:
+#: Rather than lose semantic retrieval — which is the entire cross-lingual
+#: claim — vectors fall back to a brute-force cosine scan in numpy. See
+#: rag/retrieve.py::_brute_force.
+def vec_available(conn: sqlite3.Connection) -> bool:
+    """Ask the connection, rather than remembering.
+
+    sqlite3.Connection has no __dict__, so a flag cannot be attached to one —
+    setattr raises. Probing for the extension's own version function is
+    stateless, correct for any connection from anywhere, and costs a scalar
+    SELECT.
+    """
+    try:
+        conn.execute("SELECT vec_version()").fetchone()
+        return True
+    except sqlite3.Error:
+        return False
+
+
 def connect(path: str | Path = ":memory:") -> sqlite3.Connection:
     if path != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -182,9 +208,16 @@ def connect(path: str | Path = ":memory:") -> sqlite3.Connection:
     # WRITE_LOCK above.
     conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.enable_load_extension(True)
-    sqlite_vec.load(conn)
-    conn.enable_load_extension(False)
+
+    try:
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+    except (AttributeError, sqlite3.OperationalError, sqlite3.NotSupportedError):
+        # No loadable-extension support in this interpreter. Nothing above this
+        # layer needs to know which backend ran; vec_available() probes for it.
+        pass
+
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
     conn.commit()
@@ -196,7 +229,23 @@ def vector_table(dim: int) -> str:
 
 
 def ensure_vector_table(conn: sqlite3.Connection, dim: int) -> str:
+    """Create the vector table for this width, in whichever backend is available.
+
+    Both shapes expose the same two things retrieval needs: a rowid and an
+    `embedding` column of packed float32. The vec0 table adds a MATCH operator;
+    without it the rows are scanned in numpy instead.
+    """
     name = vector_table(dim)
-    conn.execute(f"CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dim}])")
+    if vec_available(conn):
+        conn.execute(
+            f"CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dim}])"
+        )
+    else:
+        conn.execute(
+            f"CREATE TABLE IF NOT EXISTS {name} ("
+            "  rowid INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  embedding BLOB NOT NULL"
+            ")"
+        )
     conn.commit()
     return name
